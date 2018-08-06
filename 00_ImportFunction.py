@@ -3,6 +3,7 @@
 # Output rate is used as original rate / output rate, is shall be 1/2, 1/4, 1/8,...
 
 import os
+import numpy as np
 
 
 def importFunction(Filename, Row_Start = 0 , Row_End = -1, ColumnOutputList=[], OutputRate=1, OutputFilename = 'Output'):
@@ -46,6 +47,10 @@ if __name__ == '__main__':
     columnOutputList = []
     outputRate = 1
     outputFilename = fileName[0:-4] + '_output.txt'
+    columnOutputList = np.ones(10,int)
+    aaa =  columnOutputList[2]
+    if columnOutputList[2] == 1:
+        print('haha')
 
     importFunction(fileName, row_Start, row_End,columnOutputList, outputRate, outputFilename)
 

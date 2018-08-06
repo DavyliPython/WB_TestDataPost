@@ -11,9 +11,6 @@ import pyqtgraph
 #Davy Try Push
 
 
-import copy
-
-
 class testDataPost(QMainWindow, UI.Ui_MainWindow):
     def __init__(self):
         super().__init__()
