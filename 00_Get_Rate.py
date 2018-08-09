@@ -3,7 +3,7 @@
 def dataRate(Fname):
     with open(Fname, 'r') as f:
         minLineNumber = 10
-        maxLineNumber = 2000
+        maxLineNumber = 20
         i = 0
 
         #startingLine = 5   #starting from row
@@ -45,14 +45,17 @@ def dataRate(Fname):
 
             if i >= minLineNumber:
                 if max(second_list) - min(second_list) == 0:
-                    idataRate = 1   # 1 hz sample rate
-                    break
+                    idataRate =1
+                    return (idataRate)   # the case of 1 hz sample rate, normal exit
+
                 else:
                     idataRate = int(1000 / (max(second_list) - min(second_list)) * (len(second_list) - 1))
 
-                if idataRate & (idataRate - 1) == 0 : break   # for case of the power of 2 only (2, 4, 6, 8)
+                if idataRate & (idataRate - 1) == 0 : return (idataRate)   # for case of the power of 2 only (2, 4, 6, 8), normal exit
 
-
+            if i > maxLineNumber:    # not a correct sample rate
+                idataRate = -1        # abnormal exit
+                break 
 
 
     #print(second_list)
@@ -62,6 +65,6 @@ def dataRate(Fname):
 
     return idataRate
 
-fname = r'C:\onedrive\OneDrive - Honeywell\VPD\test data\32Hz-429-100kn.txt'
+fname = r'C:\Mydisk\Projects\VPD\Brake data\test_data2_output.txt'
 
 print(dataRate(fname))
