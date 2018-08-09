@@ -22,12 +22,12 @@ def importFunction(Filename, Row_Start = 0 , Row_End = -1, ColumnFilter = 0, Col
         f1 = open(Filename, 'r')
         f2 = open(OutputFilename,'w')
         # print(f1)
-        temp_line = f1.readline()
-        f2.writelines(temp_line)
-
-
         line = f1.readline()
         f2.writelines(line)
+
+
+        # line = f1.readline()
+        # f2.writelines(line)
 
         i_row = 2
         while line:
@@ -48,11 +48,11 @@ def importFunction(Filename, Row_Start = 0 , Row_End = -1, ColumnFilter = 0, Col
         f1 = open(Filename, 'r')
         f2 = open(OutputFilename, 'w')
         # print(f1)
-        temp_line = f1.readline()
-        f2.writelines(column_filter(temp_line, ColumnOutputList))
-
         line = f1.readline()
         f2.writelines(column_filter(line, ColumnOutputList))
+
+        # line = f1.readline()
+        # f2.writelines(column_filter(line, ColumnOutputList))
 
         i_row = 2
         while line:
@@ -92,7 +92,7 @@ if __name__ == '__main__':
     row_End = -1
     ColumnFilter = 1
     columnOutputList = []
-    outputRate = 0.25
+    outputRate = 1/10.0
     outputFilename = fileName[0:-4] + '_output.txt'
     columnOutputList = np.ones(9,int)
     columnOutputList[2] = 0
