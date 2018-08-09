@@ -50,14 +50,8 @@ def dataRate(Fname):
                 else:
                     idataRate = int(1000 / (max(second_list) - min(second_list)) * (len(second_list) - 1))
 
-                if idataRate <16:    # for cases of 2, 4, 8 hz
-                    if idataRate % 2 ==0:
-                        break
-                else:
-                    if  idataRate & (idataRate - 1) == 0 : break   # for case of the power of 8
-                if i > maxLineNumber:
-                    idataRate = -1
-                    break
+                if idataRate & (idataRate - 1) == 0 : break   # for case of the power of 2 only (2, 4, 6, 8)
+
 
 
 
