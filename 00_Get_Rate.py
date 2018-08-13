@@ -65,6 +65,6 @@ def dataRate(Fname):
 
     return idataRate
 
-fname = r'C:\Mydisk\Projects\VPD\Brake data\test_data2_output.txt'
+fname = r'C:/00_Work/Work_Python/06_TestPost/test_data2_output.txt'
 
 print(dataRate(fname))

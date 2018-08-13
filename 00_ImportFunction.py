@@ -92,7 +92,7 @@ if __name__ == '__main__':
     row_End = -1
     ColumnFilter = 1
     columnOutputList = []
-    outputRate = 1/10.0
+    outputRate = 1/2.0
     outputFilename = fileName[0:-4] + '_output.txt'
     columnOutputList = np.ones(9,int)
     columnOutputList[2] = 0
