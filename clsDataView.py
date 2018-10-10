@@ -122,37 +122,31 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         self.treeWidget.treeContextMenu.show()
 
     def updateViews(self):
-
-        for i in range(0, len(self.chartVBs)):
-            self.chartVBs[i].setGeometry(self.chartPlotItems[0].vb.sceneBoundingRect())
-            self.chartVBs[i].linkedViewChanged(self.chartPlotItems[0].vb, self.chartVBs[i].XAxis)
+        pass
+        # for i in range(0, len(self.chartVBs)):
+        #     self.chartVBs[i].setGeometry(self.chartPlotItems[0].vb.sceneBoundingRect())
+        #     self.chartVBs[i].linkedViewChanged(self.chartPlotItems[0].vb, self.chartVBs[i].XAxis)
 
     def plotData(self, selectedItems):
         '''selectedItems: items selected in tree view
            dfData: data frame of the selected data
         '''
 
-        dfData = self.winImpData.dfData
-
-        # set up x axis of time
-        #xAxis = self.TimeAxisItem(orientation='bottom')
-
+        #dfData = self.winImpData.dfData
 
         plotItem = self.dataPlot.plotItem
-        viewbox =  pyqtgraph.ViewBox()
+        #viewbox =  pyqtgraph.ViewBox()
         plotItem.getAxis('bottom').setPen(pyqtgraph.mkPen(color='#000000', width=1))
+        i = 0
+        for iItem in selectedItems:
+            filename = iItem.parent().text(1)    # get the parent item name
+            for iData in self.lTestDATA:
+                if filename == iData.getFileName():
+                    dfData = iData.dfTestData
+                    break
 
-
-        #self.dataPlot(axisItems={'bottom': xAxis})
-
-        #plot = win.addPlot(axisItems={'bottom': stringaxis})
-
-
-
-
-
-        for i in range(len(selectedItems)):
-            data_head = selectedItems[i].text(1)
+            i += 1
+            data_head = iItem.text(1)
             # y axis
             data_2_plot = list(dfData[data_head])
 
@@ -364,7 +358,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
 
 
-    def loadData1(self,fname):  #data in a 2-dim array
+    def loadData1(self,fname):  #data in a 2-dim array   not used
         f1 = open(fname, 'r')
         first_line = f1.readline().strip('\n')
         self.treeItem = first_line.split()

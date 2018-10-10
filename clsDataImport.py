@@ -17,7 +17,7 @@ class clsImportData(QDialog, Ui_Import):
     ''''
     '''
 
-    def __init__(self, dataparam, testdata):  # dataparam - parameter class
+    def __init__(self, dataparam, listoftestdata):  # dataparam - parameter class
         super().__init__()
 
 
@@ -28,7 +28,7 @@ class clsImportData(QDialog, Ui_Import):
 
 
         self.dataparam = dataparam  # data parameter class for conversion use
-        self.lTESTDAT = testdata
+        self.lTESTDATA = listoftestdata   # list of testdata to be reviewed
 
 
 
@@ -88,26 +88,34 @@ class clsImportData(QDialog, Ui_Import):
 
 
     def openDateFile(self):
-
         fname = QFileDialog.getOpenFileName(self, 'Open file', 'C:\\onedrive\\OneDrive - Honeywell\\VPD\\test data\\8hz_test_sample.txt', "Text Files (*.txt);;All Files (*)")
+        if fname[0]:     # process only the first selection, could be extended for multi selection function TODO
+
+            if self.sDataFilePath != fname[0]:   # the file was not selected before
+                self.setDataFilePath(fname[0])
+
+                self.setDataRate(self.getDataRate(self.sDataFilePath))
+                self.setFileSize(self.getDataFileSize(self.sDataFilePath))
+
+                dfData = pd.read_csv(self.sDataFilePath, delim_whitespace=True, nrows = 100,  error_bad_lines=False)  # read 100 rows only
+
+                # read the first 10 rows from the file
+                self.data2review = dfData.head(9)
+                self.dataHeader = list(dfData)  # data header list
+
+                self.sStartTime = dfData['TIME'].iloc[0]
+                self.sEndTime = dfData['TIME'].iloc[-1]
+
+                self.setStartTime(self.sStartTime)
+                self.setEndTime(self.sEndTime)
+                self.setStartRow(1)
+                self.setEndRow(100)
+
+                # do the time consuming work of scan the data file
+                self.populatePreviewTable()
 
 
 
-        if fname[0]:
-            self.setDataFilePath(fname[0])
-
-            self.setDataRate(self.getDataRate(self.sDataFilePath))
-            self.setFileSize(self.getDataFileSize(self.sDataFilePath))
-
-            self.scanDateFile(self.sDataFilePath)
-
-
-            self.setStartTime(self.sStartTime)
-            self.setEndTime(self.sEndTime)
-            self.setStartRow(1)
-            self.setEndRow(100)
-
-        # self.getDataLineNo(dataFilePath)
 
 
 
@@ -206,41 +214,51 @@ class clsImportData(QDialog, Ui_Import):
         #print (idataRate)
         return idataRate
 
-    def scanDateFile(self,datafilepath):
-        self.dfData = pd.read_csv(datafilepath, delim_whitespace=True, error_bad_lines=False)
-        data2review = self.dfData.head(10)
-        self.sStartTime = self.dfData['TIME'].iloc[0]
-        self.sEndTime = self.dfData['TIME'].iloc[-1]
-        #self.iEndRow = (self.sEndTime - self.sStartTime)/self.iDataRate
+    def populatePreviewTable(self):
 
-        # change the head of table
-        self.tblreviewdata.setHorizontalHeaderLabels(list(self.dfData))
+         # change the head of table
+        self.tblreviewdata.setHorizontalHeaderLabels(self.dataHeader)
         #self.tblreviewdata.horizontalHeaderItem().setTextAlignment(Qt.AlignHCenter)
 
         # populate data to the table
-        self.tblreviewdata.setRowCount(len(data2review.index))
-        self.tblreviewdata.setColumnCount(len(data2review.columns))
-        for i, row in data2review.iterrows():
-            for j in range (len(data2review.columns)): #, val in row
+        self.tblreviewdata.setRowCount(len(self.data2review.index))
+        self.tblreviewdata.setColumnCount(len(self.data2review.columns))
+        for i, row in self.data2review.iterrows():
+            for j in range (len(self.data2review.columns)): #, val in row
                 tblItem = QTableWidgetItem(str(row.iloc[j]))
                 self.tblreviewdata.setItem(i, j, tblItem)
                 #else:
                 #    self.tableView.setItem(i, j, QTableWidgetItem(str(val)))
 
-        # initiate test data class
-        filename = os.path.basename(datafilepath)
-        testdata = clsTestData(filename,self.dfData['TIME'])
-        self.lTESTDAT.append(testdata)
+
+
 
 
     def addSelectedColumn(self):
-        #self.parColImported.append('i')  #(self.tblreviewdata.selectColumn())
-        indexes = self.tblreviewdata.selectedIndexes()
 
+        datafilename = os.path.basename(self.sDataFilePath)  # get the filename
+        dfData = pd.read_csv(self.sDataFilePath, delim_whitespace=True, error_bad_lines=False)
+
+        if not self.lTESTDATA:    # it is the first data set
+            # create a new test data class instance
+            strTestData = clsTestData(datafilename, dfData['TIME'])
+            self.lTESTDATA.append(strTestData)  # add current selection data into the testdata list
+        else:
+            for i in self.lTESTDATA:   # check if the data file name is in the list
+                if datafilename == i.getFileName():
+                    strTestData = i
+                else:
+                    # create a new test data class instance
+                    strTestData = clsTestData(datafilename, dfData['TIME'])
+                    self.lTESTDATA.append(strTestData)  # add current selection data into the testdata list
+
+
+
+        indexes = self.tblreviewdata.selectedIndexes()    # the indexes of current selections
+        #parColImported = []
         for index in indexes:
-            columnhead = list(self.dfData)[index.column()]   # get the column index
-            if columnhead not in self.parColImported and columnhead !='TIME':
-                self.parColImported.append(columnhead) # add the column head to the selected list
+            columnhead = list(dfData)[index.column()]   # get the column index
+            if columnhead !='TIME' and columnhead not in strTestData.getColumnList() :
+                strTestData.addColumnData(columnhead, dfData[columnhead])  # add column and data into the data set
 
-        for i in self.parColImported:
-            self.lTESTDAT[len(self.lTESTDAT) - 1 ].addColumnData(i, self.dfData[i])
+
