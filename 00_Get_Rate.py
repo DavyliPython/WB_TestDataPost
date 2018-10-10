@@ -55,7 +55,7 @@ def dataRate(Fname):
 
             if i > maxLineNumber:    # not a correct sample rate
                 idataRate = -1        # abnormal exit
-                break 
+                break
 
 
     #print(second_list)

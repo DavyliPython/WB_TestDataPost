@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QMainWindow, QFileDialog, QTreeWidget, QTreeWidgetItem
+from PyQt5.QtWidgets import QMainWindow, QFileDialog, QTreeWidget, QTreeWidgetItem, QWidget
 from PyQt5.QtGui import QIcon
 from PyQt5.Qt import QMenu, Qt, QAction, QCursor, QApplication
 
@@ -337,6 +337,9 @@ class testDataPost(QMainWindow, UI.Ui_MainWindow):
                 # print('5')
 
                 j = j + 1
+
+
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

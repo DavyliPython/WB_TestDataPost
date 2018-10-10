@@ -8,7 +8,7 @@ import os
 # from PyQt5.Qt import *
 
 
-import import_ui as import_UI
+#import import_ui as import_UI
 import numpy as np
 import pyqtgraph
 
