@@ -64,9 +64,8 @@ class clsImportData(QDialog, Ui_Import):
         self.iDataRate = datarate
         self.qleRate.setText(str(self.iDataRate))
 
-    def setFileSize(self,filesize):
-        self.iFileSize = filesize
-        self.qleFileSize.setText(str(self.iFileSize))
+
+
 
     def setStartTime(self, starttime):
         self.sStartTime = starttime
@@ -88,16 +87,22 @@ class clsImportData(QDialog, Ui_Import):
 
 
     def openDateFile(self):
-        fname = QFileDialog.getOpenFileName(self, 'Open file', 'C:\\onedrive\\OneDrive - Honeywell\\VPD\\test data\\8hz_test_sample.txt', "Text Files (*.txt);;All Files (*)")
-        if fname[0]:     # process only the first selection, could be extended for multi selection function TODO
+        fname = QFileDialog.getOpenFileName(self, 'Open file', 'C:\\onedrive\\OneDrive - Honeywell\\VPD\\test data\\_8hz_test_sample.txt', "Text Files (*.txt);;All Files (*)")
+        if fname[0]:     # process only the one selection
 
             if self.sDataFilePath != fname[0]:   # the file was not selected before
                 self.setDataFilePath(fname[0])
 
-                self.setDataRate(self.getDataRate(self.sDataFilePath))
-                self.setFileSize(self.getDataFileSize(self.sDataFilePath))
+                sizeoffile = os.path.getsize(self.sDataFilePath)
+                self.qleFileSize.setText(str(round(sizeoffile/1024, 1)))  # KB, keep on digit of decimal
 
-                dfData = pd.read_csv(self.sDataFilePath, delim_whitespace=True, nrows = 100,  error_bad_lines=False)  # read 100 rows only
+                dfData = pd.read_csv(self.sDataFilePath, delim_whitespace=True, nrows = 200,  error_bad_lines=False)  # read 100 rows only
+
+                self.setDataRate(self.getDataRate(list(dfData['TIME'])))
+
+                self.iEndRow = self.getRowNum(self.sDataFilePath)
+
+
 
                 # read the first 10 rows from the file
                 self.data2review = dfData.head(9)
@@ -109,7 +114,7 @@ class clsImportData(QDialog, Ui_Import):
                 self.setStartTime(self.sStartTime)
                 self.setEndTime(self.sEndTime)
                 self.setStartRow(1)
-                self.setEndRow(100)
+                self.setEndRow(self.iEndRow)
 
                 # do the time consuming work of scan the data file
                 self.populatePreviewTable()
@@ -129,14 +134,6 @@ class clsImportData(QDialog, Ui_Import):
         # print (sizeoffile)
         return round(sizeoffile, 1)  # keep on digit of decimal
 
-    def getEndRow(self, dfPath):
-        '''TODO
-            input: string, path to the file
-            output: int, line number of the date, approx estimation is acceptable
-
-
-        '''
-        pass
 
     def getStartTime(self, dfPath):
         '''TODO
@@ -154,62 +151,73 @@ class clsImportData(QDialog, Ui_Import):
         '''
         return '00:10:00'
 
-    def getDataRate(self,Fname):
+    def getRowNum(self,filename):
+
+        with open(filename, 'rb') as input_file:
+            linesize = 0
+            i = 0
+            for line in input_file:
+                if i == 0:
+                    i += 1
+                    continue
+                linesize += len(line)
+                i += 1
+                if i >= 11:
+                    break
+
+            linesize /= 10
+        filesize = os.path.getsize(self.sDataFilePath)
+        rownumber = round (filesize/linesize)
+        return  rownumber
+
+    def getDataRate(self,lstTime):
         '''
-            input: string, path to the file
+            input: list of time
             output: int, rate in Hz
 
         '''
-        with open(Fname, 'r') as f:
-            minLineNumber = 10
-            maxLineNumber = 20
-            i = 0
 
-            line = f.readline()
-            temp_list = line.split()
+        minLineNumber = 10
+        maxLineNumber = len(lstTime)
+        i = 0
 
-            if temp_list[0].upper() != "TIME":
-                print("bad data file format")
-                return (-1)
+        lastMillisecond = 0
+        second_list = []
+        millisecondListValue = 0
+        n = 0  # increase of time in millisecond
+        idataRate = 0
 
-            lastMillisecond = 0
-            second_list = []
-            millisecondListValue = 0
-            n = 0  # increase of time in millisecond
-            idataRate = 0
-            for line in f:
+        for iTime in lstTime:
+            #iTime  12:17:44:531
+            iMillisecond = int(iTime.split(":")[3])  # 531
 
-                temp_list = line.split()
-                iTime = temp_list[0]  # 12:17:44:531
-                iMillisecond = int(iTime.split(":")[3])  # 531
+            if iMillisecond >= lastMillisecond:  # get the increase: n
+                n = iMillisecond - lastMillisecond
+            else:
+                n = iMillisecond + 1000 - lastMillisecond
 
-                if iMillisecond >= lastMillisecond:  # get the increase: n
-                    n = iMillisecond - lastMillisecond
+            millisecondListValue += n
+
+            second_list.append(millisecondListValue)
+
+            lastMillisecond = iMillisecond
+
+            i += 1
+
+            if i >= minLineNumber:
+                if max(second_list) - min(second_list) == 0:
+                    idataRate = 1
+                    return (idataRate)  # the case of 1 hz sample rate, normal exit
+
                 else:
-                    n = iMillisecond + 1000 - lastMillisecond
+                    idataRate = int(1000 / (max(second_list) - min(second_list)) * (len(second_list) - 1))
 
-                millisecondListValue += n
+                if idataRate & (idataRate - 1) == 0:
+                    return (idataRate)  # for case of the power of 2 only (2, 4, 6, 8), normal exit
 
-                second_list.append(millisecondListValue)
-
-                lastMillisecond = iMillisecond
-
-                i += 1
-
-                if i >= minLineNumber:
-                    if max(second_list) - min(second_list) == 0:
-                        idataRate = 1
-                        return (idataRate)  # the case of 1 hz sample rate, normal exit
-
-                    else:
-                        idataRate = int(1000 / (max(second_list) - min(second_list)) * (len(second_list) - 1))
-
-                    if idataRate & (idataRate - 1) == 0:
-                        return (idataRate)  # for case of the power of 2 only (2, 4, 6, 8), normal exit
-
-                if i > maxLineNumber:  # not a correct sample rate
-                    idataRate = -1  # abnormal exit
-                    break
+            if i > maxLineNumber:  # not a correct sample rate
+                idataRate = -1  # abnormal exit
+                break
 
         #print (idataRate)
         return idataRate

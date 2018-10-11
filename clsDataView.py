@@ -26,6 +26,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         self.chartAxials = []           # chart of axial?
         self.chartCurve = []            # chart of Curve?
         self.shortfname = ''           # data file name without path
+        self.bPlotted = False           # not curve is plotted
 
         self.lTestDATA = []      # the test data to be reviewed, each item is a class of data structure
                                     #  [testData1, testData2 ...]
@@ -116,16 +117,33 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         self.dataPlot.plotItem.hideAxis("bottom")
         #self.dataPlot.plotItem.hideAxis("left")
 
+        self.region = pyqtgraph.LinearRegionItem(values=(0, 1))
+        self.region.setZValue(10)
+        self.dataPlotRange.addItem(self.region, ignoreBounds=True)
+
+        self.region.sigRegionChanged.connect(self.regionUpdate)
+        viewbox.sigRangeChanged.connect(self.updateRegion)
+
+
+        self.vLine = pyqtgraph.InfiniteLine(angle=90, movable=False)
+        self.hLine = pyqtgraph.InfiniteLine(angle=0, movable=False)
+        self.dataPlot.addItem(self.vLine, ignoreBounds=True)
+        self.dataPlot.addItem(self.hLine, ignoreBounds=True)
+
+        self.dataPlot.plotItem.scene().sigMouseMoved.connect(self.mouseMove)
+        #self.region.setRegion()
+
 
     def showContextMenu(self):
         self.treeWidget.treeContextMenu.move(QCursor.pos())
         self.treeWidget.treeContextMenu.show()
 
     def updateViews(self):
-        pass
+
         # for i in range(0, len(self.chartVBs)):
-        #     self.chartVBs[i].setGeometry(self.chartPlotItems[0].vb.sceneBoundingRect())
-        #     self.chartVBs[i].linkedViewChanged(self.chartPlotItems[0].vb, self.chartVBs[i].XAxis)
+        viewbox = self.dataPlot.plotItem.vb
+        viewbox.setGeometry(viewbox.sceneBoundingRect())
+        #viewbox.linkedViewChanged(viewbox, self.chartVBs[i].XAxis)
 
     def plotData(self, selectedItems):
         '''selectedItems: items selected in tree view
@@ -140,9 +158,11 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         i = 0
         for iItem in selectedItems:
             filename = iItem.parent().text(1)    # get the parent item name
+
             for iData in self.lTestDATA:
                 if filename == iData.getFileName():
                     dfData = iData.dfTestData
+                    N = iData.N
                     break
 
             i += 1
@@ -156,196 +176,71 @@ class clsDataView(QMainWindow, Ui_MainWindow):
             # convert the time in string to date time object
             iTime = [self.sTimeToDateTime(j) for j in sTime]
 
-            #pen1 = pyqtgraph.mkPen(color='b')  # , width=2)
-
-            # Axis
-            #a2 = pyqtgraph.AxisItem("left")
-            #a3 = pyqtgraph.AxisItem("left")
-            #a4 = pyqtgraph.AxisItem("left")
-            #a5 = pyqtgraph.AxisItem("left")
-            #a6 = pyqtgraph.AxisItem("left")
-
-            #xAxis = self.TimeAxisItem("bottom")
-
-            # ViewBoxes
-            #v2 = pyqtgraph.ViewBox()
-            # v3 = pyqtgraph.ViewBox()
-            # v4 = pyqtgraph.ViewBox()
-            # v5 = pyqtgraph.ViewBox()
-            # v6 = pyqtgraph.ViewBox()
-
-
-            # # layout
-            # L = pyqtgraph.GraphicsLayout()
-            # self.dataPlot.setCentralWidget(L)
-
-            # add axis to layout
-            ## watch the col parameter here for the position
-            #L.addItem(a2, row=2, col=5, rowspan=1, colspan=1)
-            # L.addItem(a3, row=2, col=4, rowspan=1, colspan=1)
-            # L.addItem(a4, row=2, col=3, rowspan=1, colspan=1)
-            # L.addItem(a5, row=2, col=2, rowspan=1, colspan=1)
-            # L.addItem(a6, row=2, col=1, rowspan=1, colspan=1)
-            #self.L.addItem(xAxis, row=2, col=6, rowspan=1, colspan=1)
-
-            # plotitem and viewbox
-            ## at least one plotitem is used whioch holds its own viewbox and left axis
-            #v1 = plotItem.vb  # reference to viewbox of the plotitem
-            #v1.addItem(xAxis)
-            #self.L.addItem(plotItem, row=2, col=6, rowspan=1, colspan=1)  # add plotitem to layout
-
-            # add viewboxes to layout
-            #self.L.scene().addItem(v2)
-            # L.scene().addItem(v3)
-            # L.scene().addItem(v4)
-            # L.scene().addItem(v5)
-            # L.scene().addItem(v6)
-
-
-            # link axis with viewboxes
-            # xAxis.linkToView(v2)
-            # a2.linkToView(v2)
-            # a3.linkToView(v3)
-            # a4.linkToView(v4)
-            # a5.linkToView(v5)
-            # a6.linkToView(v6)
-
-
-
-            # link viewboxes
-            # v2.setXLink(v1)
-            # v3.setXLink(v2)
-            # v4.setXLink(v3)
-            # v5.setXLink(v4)
-            # v6.setXLink(v5)
-
-            # axes labels
-            #plotItem.getAxis("left").setLabel('axis 1 in ViewBox of PlotItem', color='#FFFFFF')
-            #a2.setLabel('axis 2 in Viewbox 2', color='#2E2EFE')
-            # a3.setLabel('axis 3 in Viewbox 3', color='#2EFEF7')
-            # a4.setLabel('axis 4 in Viewbox 4', color='#2EFE2E')
-            # a5.setLabel('axis 5 in Viewbox 5', color='#FFFF00')
-            # a6.setLabel('axis 6 in Viewbox 6', color='#FE2E64')
-            #plotItem.getAxis("bottom").setLabel('Time', color='#FF0F0F')
             plotItem.hideAxis("bottom")
 
             # example
             # pw.plot(x=[x.timestamp() for x in iTime ], y= list(df['BCVIIN']), pen = 'r')
-            plotcurve = pyqtgraph.PlotCurveItem(x=[x.timestamp() for x in iTime ], y= data_2_plot, pen=self.colorDex[i%5])
+            plotcurve = pyqtgraph.PlotCurveItem(x=[x.timestamp() for x in iTime], y= data_2_plot, pen=self.colorDex[i%5])
             plotItem.addItem(plotcurve)
 
+            if not self.bPlotted:
+                self.dataPlotRange.plot(y=data_2_plot)
+                #self.dataPlotRange.setZValue(1)
+                self.region.setRegion([len(dfData['TIME']) * 0.4, len(dfData['TIME']) * 0.6])
+
+            self.bPlotted = True
 
 
 
-            #
-            # ax_temp = pyqtgraph.AxisItem('right')
-            #
-            # # self.chartPlotItems[0].layout.clear()
+
+
+           # # self.chartPlotItems[0].layout.clear()
             #
             # self.chartPlotItems[0].layout.addItem(ax_temp, 2, j)
             # self.chartPlotItems[0].scene().addItem(temp_vb)
             # ax_temp.linkToView(temp_vb)
             # temp_vb.setXLink(self.chartPlotItems[0])
             # ax_temp.setLabel('axial ' + str(j), color=self.colorDex[i])
-            # # print('4')
-            # temp_2_plot = self.dataSummary[int(selectedItems[i].text(0))]
-            # # print(temp_2_plot[:100])
-            # temp_plotcurve = pyqtgraph.PlotCurveItem([float(x) for x in temp_2_plot], pen=self.colorDex[i])
-            # temp_vb.addItem(temp_plotcurve)
-            #
-            # self.chartVBs.append(temp_vb)
-            # self.chartAxials.append(ax_temp)
-            # self.chartCurve.append(temp_plotcurve)
-            # # print('5')
-            #
-            # j = j + 1
 
 
-    # def chartPlot(self, currentItem, selectedItems):
-    #
-    #     if self.chartVBs:   # eixting chart viewbox
-    #         for i in range(0, len(self.chartVBs)):
-    #             print('remove VBs')
-    #             self.chartPlotItems[0].scene().removeItem(self.chartVBs[i])
-    #             self.chartPlotItems[0].scene().removeItem(self.chartAxials[i])
-    #             self.chartPlotItems[0].scene().removeItem(self.chartCurve[i])
-    #
-    #     if self.chartPlotItems:
-    #         print('remove plot item')
-    #         self.dataPlot.removeItem(self.first_curve)
-    #
     #     #self.updateViews()
-    #
-    #
-    #     # reset the class member
-    #     self.chartPlotItems = []
-    #     self.chartVBs = []           #VB
-    #     self.chartAxials = []
-    #     self.chartCurve = []
-    #
-    #     # print(currentItem, selectedItems)
-    #     if len(selectedItems) == 1:
-    #         self.CI_Plot(currentItem)
-    #     else:
-    #         self.SI_Plot(currentItem, selectedItems)
-    #
-    #     ################
-    #     self.item_Selected = int(self.treeWidget.currentItem().text(0))
-    #
+
     #     pen1 = pyqtgraph.mkPen(color='b')
     #     pen2 = pyqtgraph.mkPen(color='r')
     #
-    #     self.dataPlotRange.plot(range(self.dataSummary[self.item_Selected].__len__()),
-    #                             [float(x) for x in self.dataSummary[self.item_Selected]], pen=pen2, clear=True)
-    #     self.dataPlotRange.setZValue(1)
-    #
-    #     self.region = pyqtgraph.LinearRegionItem()
-    #     self.region.setZValue(10)
-    #     self.dataPlotRange.addItem(self.region, ignoreBounds=True)
-    #
-    #     self.region.setRegion([self.dataRow * 0.4, self.dataRow * 0.6])
-    #
-    #     self.region.sigRegionChanged.connect(self.regionUpdate)
-    #     self.dataPlot.plotItem.vb.sigRangeChanged.connect(self.updateRegion)
-    #     ################
-    #     self.vLine = pyqtgraph.InfiniteLine(angle=90, movable=False)
-    #     self.hLine = pyqtgraph.InfiniteLine(angle=0, movable=False)
-    #     self.dataPlot.addItem(self.vLine, ignoreBounds=True)
-    #     self.dataPlot.addItem(self.hLine, ignoreBounds=True)
-    #     print('line done')
-    #
-    #     self.dataPlot.plotItem.scene().sigMouseMoved.connect(self.mouseMove)
 
-    # def mouseMove(self, evt):
-    #     # print('dong')
-    #     pos = evt  # [0]  ## using signal proxy turns original arguments into a tuple
-    #     # print(evt)
-    #     if self.dataPlot.plotItem.sceneBoundingRect().contains(pos):
-    #         print('if1')
-    #         mousePoint = self.dataPlot.plotItem.vb.mapSceneToView(pos)
-    #         print('if2')
-    #         index = int(mousePoint.x())
-    #         print('if3')
-    #         if index > 0 and index < len(self.dataSummary[self.item_Selected]):
-    #             # print('if4')
-    #             # print(index)
-    #             # print(mousePoint.x())
-    #             # print(self.dataSummary[self.item_Selected][index])
-    #             self.label.setText(
-    #                 "<span style='font-size: 12pt'>x=%0.1f,   <span style='color: red'> Y1=%0.1f</span>," % (
-    #                     mousePoint.x(), float(self.dataSummary[self.item_Selected][index])))
-    #         self.vLine.setPos(mousePoint.x())
-    #         self.hLine.setPos(mousePoint.y())
 
-    # def regionUpdate(self):
-    #     minX, maxX = self.region.getRegion()
-    #     self.dataPlot.setXRange(minX, maxX, padding=0)
-    #
-    # def updateRegion(self, window, viewRange):
-    #     # print(window)
-    #     # print(viewRange)
-    #     rgn = viewRange[0]
-    #     self.region.setRegion(rgn)
+    def mouseMove(self, evt):
+        if self.bPlotted:
+            pos = evt  # [0]  ## using signal proxy turns original arguments into a tudfDataple
+            # print(evt)
+            dfData=self.lTestDATA[0].dfTestData
+            if self.dataPlot.plotItem.sceneBoundingRect().contains(pos):
+                print('pos x: %0.1f + y: %0.1f' %(pos.x(), pos.y()) )
+                mousePoint = self.dataPlot.plotItem.vb.mapSceneToView(pos)
+                print('pos x: %0.1f + y: %0.1f' %(mousePoint.x(), mousePoint.y()))
+                index = int(mousePoint.x())
+                #print('if3')
+                if index > 0 and index < len(dfData):
+                    # print('if4')
+                    # print(index)
+                    # print(mousePoint.x())
+                    # print(self.dataSummary[self.item_Selected][index])
+                    #self.label.setText("X = %0.1f; Y = %0.1f " %(mousePoint.x(), mousePoint.y())) #"<span style='font-size: 12pt'>x=%0.1f,   <span style='color: red'> Y1=%0.1f</span> " % (mousePoint.x(), float(dfData[index])))
+                    self.label.setText("<span style='font-size: 12pt'>x=%0.1f,   <span style='color: red'> Y1=%0.1f</span> " % (mousePoint.x(), mousePoint.y()))
+
+                self.vLine.setPos(mousePoint.x())
+                self.hLine.setPos(mousePoint.y())
+
+    def regionUpdate(self):
+        minX, maxX = self.region.getRegion()
+        self.dataPlot.setXRange(minX, maxX, padding=0)
+
+    def updateRegion(self, window, viewRange):
+        # window: viewbox
+        # viewrange[0]: x axis   viewRange[1]: y axis
+        rgn = viewRange[0]
+        self.region.setRegion(rgn)
 
     def openFile(self):
 
