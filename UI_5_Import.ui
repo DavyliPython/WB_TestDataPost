@@ -1,24 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Import</class>
- <widget class="QWidget" name="Import">
+ <class>winImportData</class>
+ <widget class="QWidget" name="winImportData">
+  <property name="windowModality">
+   <enum>Qt::WindowModal</enum>
+  </property>
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>700</width>
-    <height>842</height>
+    <width>686</width>
+    <height>535</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Import...</string>
+   <string>Import Test Data</string>
   </property>
   <widget class="QLabel" name="label">
    <property name="geometry">
     <rect>
-     <x>10</x>
+     <x>30</x>
      <y>20</y>
-     <width>91</width>
+     <width>81</width>
      <height>16</height>
     </rect>
    </property>
@@ -26,12 +29,12 @@
     <string>Test Data File:</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="pushButton">
+  <widget class="QPushButton" name="btnBrowse_in">
    <property name="geometry">
     <rect>
-     <x>610</x>
-     <y>10</y>
-     <width>61</width>
+     <x>430</x>
+     <y>18</y>
+     <width>71</width>
      <height>28</height>
     </rect>
    </property>
@@ -39,82 +42,37 @@
     <string>...</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="pushButton_2">
+  <widget class="QPushButton" name="btnImport">
    <property name="geometry">
     <rect>
-     <x>470</x>
-     <y>60</y>
-     <width>93</width>
-     <height>28</height>
+     <x>530</x>
+     <y>480</y>
+     <width>131</width>
+     <height>41</height>
     </rect>
    </property>
    <property name="text">
-    <string>Preview</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_3">
-   <property name="geometry">
-    <rect>
-     <x>280</x>
-     <y>60</y>
-     <width>51</width>
-     <height>16</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Read </string>
-   </property>
-  </widget>
-  <widget class="QSpinBox" name="spinBox">
-   <property name="geometry">
-    <rect>
-     <x>330</x>
-     <y>60</y>
-     <width>71</width>
-     <height>22</height>
-    </rect>
-   </property>
-   <property name="maximum">
-    <number>200</number>
-   </property>
-   <property name="singleStep">
-    <number>20</number>
-   </property>
-   <property name="value">
-    <number>10</number>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="pushButton_3">
-   <property name="geometry">
-    <rect>
-     <x>570</x>
-     <y>60</y>
-     <width>93</width>
-     <height>28</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Clear</string>
+    <string>Import Data</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_4">
    <property name="geometry">
     <rect>
-     <x>30</x>
-     <y>110</y>
-     <width>121</width>
+     <x>520</x>
+     <y>23</y>
+     <width>81</width>
      <height>16</height>
     </rect>
    </property>
    <property name="text">
-    <string>Data Preview:</string>
+    <string>Preview the first </string>
    </property>
   </widget>
   <widget class="QLabel" name="label_5">
    <property name="geometry">
     <rect>
-     <x>410</x>
-     <y>60</y>
+     <x>640</x>
+     <y>23</y>
      <width>31</width>
      <height>16</height>
     </rect>
@@ -126,248 +84,218 @@
   <widget class="QGroupBox" name="groupBox">
    <property name="geometry">
     <rect>
-     <x>30</x>
-     <y>350</y>
-     <width>631</width>
-     <height>231</height>
+     <x>10</x>
+     <y>260</y>
+     <width>661</width>
+     <height>81</height>
     </rect>
    </property>
    <property name="title">
-    <string/>
+    <string>Data Summary</string>
    </property>
-   <widget class="QLineEdit" name="qleEndRow">
+   <widget class="QLineEdit" name="qleRows">
     <property name="geometry">
      <rect>
-      <x>380</x>
-      <y>180</y>
-      <width>221</width>
+      <x>510</x>
+      <y>20</y>
+      <width>71</width>
       <height>22</height>
      </rect>
+    </property>
+    <property name="inputMethodHints">
+     <set>Qt::ImhFormattedNumbersOnly</set>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+    </property>
+    <property name="readOnly">
+     <bool>true</bool>
     </property>
    </widget>
    <widget class="QLabel" name="label_12">
     <property name="geometry">
      <rect>
-      <x>340</x>
-      <y>180</y>
-      <width>26</width>
+      <x>440</x>
+      <y>20</y>
+      <width>80</width>
       <height>22</height>
      </rect>
     </property>
     <property name="text">
-     <string>End:</string>
+     <string>Total Rows:</string>
     </property>
    </widget>
-   <widget class="QLineEdit" name="qleStartRow">
-    <property name="geometry">
-     <rect>
-      <x>70</x>
-      <y>180</y>
-      <width>255</width>
-      <height>22</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="QCheckBox" name="checkBox_3">
+   <widget class="QLabel" name="label_13">
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>150</y>
-      <width>95</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>By Row</string>
-    </property>
-   </widget>
-   <widget class="QLineEdit" name="qleColumnNo">
-    <property name="geometry">
-     <rect>
-      <x>140</x>
-      <y>120</y>
-      <width>351</width>
-      <height>22</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_8">
-    <property name="geometry">
-     <rect>
-      <x>350</x>
-      <y>60</y>
-      <width>26</width>
+      <y>50</y>
+      <width>80</width>
       <height>22</height>
      </rect>
     </property>
     <property name="text">
-     <string>End:</string>
-    </property>
-   </widget>
-   <widget class="QCheckBox" name="qcbByTime">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>30</y>
-      <width>95</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>By Time</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_7">
-    <property name="geometry">
-     <rect>
-      <x>30</x>
-      <y>60</y>
-      <width>33</width>
-      <height>22</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Start:</string>
+     <string>Data Rate ( Hz)</string>
     </property>
    </widget>
    <widget class="QLabel" name="label_9">
     <property name="geometry">
      <rect>
+      <x>240</x>
+      <y>20</y>
+      <width>80</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Total Columns:</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="qleColumns">
+    <property name="geometry">
+     <rect>
+      <x>330</x>
+      <y>20</y>
+      <width>71</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="inputMethodHints">
+     <set>Qt::ImhDigitsOnly</set>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+    </property>
+    <property name="readOnly">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_14">
+    <property name="geometry">
+     <rect>
       <x>30</x>
-      <y>120</y>
-      <width>91</width>
+      <y>20</y>
+      <width>80</width>
       <height>22</height>
      </rect>
     </property>
     <property name="text">
-     <string>Column No.</string>
+     <string>File Size ( Kb)</string>
     </property>
    </widget>
-   <widget class="QCheckBox" name="qcbByColumn">
+   <widget class="QLineEdit" name="qleFileSize">
     <property name="geometry">
      <rect>
-      <x>20</x>
-      <y>90</y>
-      <width>95</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>By Column</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_11">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>180</y>
-      <width>33</width>
+      <x>110</x>
+      <y>20</y>
+      <width>71</width>
       <height>22</height>
      </rect>
     </property>
     <property name="text">
-     <string>Start:</string>
+     <string/>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+    </property>
+    <property name="readOnly">
+     <bool>true</bool>
     </property>
    </widget>
-   <widget class="QLineEdit" name="qleStartTime">
+   <widget class="QLineEdit" name="qleRate">
     <property name="geometry">
      <rect>
-      <x>70</x>
-      <y>60</y>
-      <width>255</width>
+      <x>110</x>
+      <y>50</y>
+      <width>71</width>
       <height>22</height>
      </rect>
     </property>
+    <property name="alignment">
+     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+    </property>
+    <property name="readOnly">
+     <bool>true</bool>
+    </property>
    </widget>
-   <widget class="QLineEdit" name="qleEndTime">
+   <widget class="QLabel" name="label_23">
     <property name="geometry">
      <rect>
-      <x>390</x>
-      <y>60</y>
-      <width>221</width>
+      <x>220</x>
+      <y>50</y>
+      <width>101</width>
       <height>22</height>
      </rect>
     </property>
+    <property name="text">
+     <string>Time Starting from:</string>
+    </property>
    </widget>
-  </widget>
-  <widget class="QLabel" name="label_6">
-   <property name="geometry">
-    <rect>
-     <x>70</x>
-     <y>600</y>
-     <width>91</width>
-     <height>16</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Output Rate</string>
-   </property>
-  </widget>
-  <widget class="QLineEdit" name="lineEdit_3">
-   <property name="geometry">
-    <rect>
-     <x>180</x>
-     <y>600</y>
-     <width>221</width>
-     <height>22</height>
-    </rect>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_10">
-   <property name="geometry">
-    <rect>
-     <x>30</x>
-     <y>660</y>
-     <width>91</width>
-     <height>16</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Output File:</string>
-   </property>
-  </widget>
-  <widget class="QLineEdit" name="lineEdit_8">
-   <property name="geometry">
-    <rect>
-     <x>110</x>
-     <y>660</y>
-     <width>541</width>
-     <height>22</height>
-    </rect>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="pushButton_4">
-   <property name="geometry">
-    <rect>
-     <x>210</x>
-     <y>710</y>
-     <width>93</width>
-     <height>28</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Interupt</string>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="pushButton_5">
-   <property name="geometry">
-    <rect>
-     <x>110</x>
-     <y>710</y>
-     <width>93</width>
-     <height>28</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Preview</string>
-   </property>
+   <widget class="QTimeEdit" name="teDataFromTime">
+    <property name="geometry">
+     <rect>
+      <x>330</x>
+      <y>50</y>
+      <width>71</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="toolTipDuration">
+     <number>-1</number>
+    </property>
+    <property name="inputMethodHints">
+     <set>Qt::ImhPreferNumbers|Qt::ImhTime</set>
+    </property>
+    <property name="displayFormat">
+     <string>hh:mm:ss</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_24">
+    <property name="geometry">
+     <rect>
+      <x>480</x>
+      <y>50</y>
+      <width>31</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>To:</string>
+    </property>
+   </widget>
+   <widget class="QTimeEdit" name="teDataToTime">
+    <property name="geometry">
+     <rect>
+      <x>510</x>
+      <y>50</y>
+      <width>71</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="inputMethodHints">
+     <set>Qt::ImhPreferNumbers|Qt::ImhTime</set>
+    </property>
+    <property name="maximumTime">
+     <time>
+      <hour>23</hour>
+      <minute>59</minute>
+      <second>59</second>
+     </time>
+    </property>
+    <property name="currentSection">
+     <enum>QDateTimeEdit::HourSection</enum>
+    </property>
+    <property name="displayFormat">
+     <string>hh:mm:ss</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QProgressBar" name="progressBar">
    <property name="geometry">
     <rect>
-     <x>50</x>
-     <y>760</y>
-     <width>621</width>
+     <x>10</x>
+     <y>490</y>
+     <width>511</width>
      <height>23</height>
     </rect>
    </property>
@@ -375,37 +303,39 @@
     <number>24</number>
    </property>
   </widget>
-  <widget class="QLineEdit" name="qleFilePath">
+  <widget class="QLineEdit" name="qleFilePath_in">
    <property name="geometry">
     <rect>
-     <x>100</x>
+     <x>110</x>
      <y>20</y>
-     <width>491</width>
+     <width>310</width>
      <height>22</height>
     </rect>
+   </property>
+   <property name="readOnly">
+    <bool>true</bool>
    </property>
   </widget>
   <widget class="QTableWidget" name="tblreviewdata">
    <property name="geometry">
     <rect>
-     <x>30</x>
-     <y>130</y>
-     <width>611</width>
+     <x>10</x>
+     <y>60</y>
+     <width>661</width>
      <height>192</height>
     </rect>
    </property>
-  </widget>
-  <widget class="QLabel" name="label_13">
-   <property name="geometry">
-    <rect>
-     <x>110</x>
-     <y>60</y>
-     <width>141</width>
-     <height>16</height>
-    </rect>
+   <property name="inputMethodHints">
+    <set>Qt::ImhNone</set>
    </property>
-   <property name="text">
-    <string>Rate                               Hz</string>
+   <property name="frameShape">
+    <enum>QFrame::StyledPanel</enum>
+   </property>
+   <property name="selectionMode">
+    <enum>QAbstractItemView::MultiSelection</enum>
+   </property>
+   <property name="selectionBehavior">
+    <enum>QAbstractItemView::SelectColumns</enum>
    </property>
   </widget>
   <widget class="QLabel" name="lbRate_2">
@@ -421,41 +351,272 @@
     <string/>
    </property>
   </widget>
-  <widget class="QLineEdit" name="qleRate">
+  <widget class="QLineEdit" name="leRows">
    <property name="geometry">
     <rect>
-     <x>140</x>
-     <y>60</y>
-     <width>81</width>
+     <x>605</x>
+     <y>20</y>
+     <width>31</width>
      <height>22</height>
     </rect>
    </property>
-  </widget>
-  <widget class="QLabel" name="label_14">
-   <property name="geometry">
-    <rect>
-     <x>110</x>
-     <y>90</y>
-     <width>141</width>
-     <height>16</height>
-    </rect>
+   <property name="inputMethodHints">
+    <set>Qt::ImhDigitsOnly</set>
    </property>
    <property name="text">
-    <string>Size                                Kb</string>
+    <string>10</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
+   <property name="readOnly">
+    <bool>true</bool>
    </property>
   </widget>
-  <widget class="QLineEdit" name="qleFileSize">
+  <widget class="QGroupBox" name="groupBox_2">
    <property name="geometry">
     <rect>
-     <x>140</x>
-     <y>90</y>
-     <width>81</width>
-     <height>22</height>
+     <x>10</x>
+     <y>350</y>
+     <width>661</width>
+     <height>121</height>
     </rect>
    </property>
-   <property name="text">
-    <string/>
+   <property name="title">
+    <string>Export Setting</string>
    </property>
+   <widget class="QLabel" name="label_15">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>20</y>
+      <width>101</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Sampling Rate ( Hz)</string>
+    </property>
+   </widget>
+   <widget class="QSpinBox" name="sbRate">
+    <property name="geometry">
+     <rect>
+      <x>110</x>
+      <y>20</y>
+      <width>41</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+    </property>
+    <property name="maximum">
+     <number>200</number>
+    </property>
+    <property name="singleStep">
+     <number>1</number>
+    </property>
+    <property name="value">
+     <number>1</number>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_7">
+    <property name="geometry">
+     <rect>
+      <x>190</x>
+      <y>20</y>
+      <width>101</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Time Starting from:</string>
+    </property>
+   </widget>
+   <widget class="QTimeEdit" name="teFromTime">
+    <property name="geometry">
+     <rect>
+      <x>300</x>
+      <y>20</y>
+      <width>71</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="toolTipDuration">
+     <number>-1</number>
+    </property>
+    <property name="inputMethodHints">
+     <set>Qt::ImhPreferNumbers|Qt::ImhTime</set>
+    </property>
+    <property name="displayFormat">
+     <string>hh:mm:ss</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_8">
+    <property name="geometry">
+     <rect>
+      <x>390</x>
+      <y>20</y>
+      <width>31</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>To:</string>
+    </property>
+   </widget>
+   <widget class="QTimeEdit" name="teToTime">
+    <property name="geometry">
+     <rect>
+      <x>420</x>
+      <y>20</y>
+      <width>71</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="inputMethodHints">
+     <set>Qt::ImhPreferNumbers|Qt::ImhTime</set>
+    </property>
+    <property name="maximumTime">
+     <time>
+      <hour>23</hour>
+      <minute>59</minute>
+      <second>59</second>
+     </time>
+    </property>
+    <property name="currentSection">
+     <enum>QDateTimeEdit::HourSection</enum>
+    </property>
+    <property name="displayFormat">
+     <string>hh:mm:ss</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_3">
+    <property name="geometry">
+     <rect>
+      <x>520</x>
+      <y>20</y>
+      <width>131</width>
+      <height>28</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Reset</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="qleToRow">
+    <property name="geometry">
+     <rect>
+      <x>420</x>
+      <y>50</y>
+      <width>71</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="inputMethodHints">
+     <set>Qt::ImhTime</set>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_11">
+    <property name="geometry">
+     <rect>
+      <x>230</x>
+      <y>50</y>
+      <width>61</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>From Row:</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="qleFromRow">
+    <property name="geometry">
+     <rect>
+      <x>300</x>
+      <y>50</y>
+      <width>71</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="inputMethodHints">
+     <set>Qt::ImhFormattedNumbersOnly</set>
+    </property>
+    <property name="text">
+     <string>1</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_16">
+    <property name="geometry">
+     <rect>
+      <x>390</x>
+      <y>50</y>
+      <width>31</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>To:</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_10">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>90</y>
+      <width>91</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Output to File:</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="qleFilePath_out">
+    <property name="geometry">
+     <rect>
+      <x>100</x>
+      <y>90</y>
+      <width>310</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="readOnly">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="btnBrowse_out">
+    <property name="geometry">
+     <rect>
+      <x>420</x>
+      <y>86</y>
+      <width>71</width>
+      <height>28</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>...</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="btnExport">
+    <property name="geometry">
+     <rect>
+      <x>520</x>
+      <y>60</y>
+      <width>131</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Export Data</string>
+    </property>
+   </widget>
   </widget>
   <action name="actionBrowse">
    <property name="text">

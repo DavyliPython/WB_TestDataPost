@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QMainWindow, QFileDialog, QTreeWidget, QTreeWidgetIt
 from PyQt5.QtGui import QIcon
 from PyQt5.Qt import QMenu, Qt, QAction, QCursor, QApplication
 
-import pyqtgraph
+import pyqtgraph as pg
 import pandas as pd
 
 import sys
@@ -27,6 +27,8 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         self.chartCurve = []            # chart of Curve?
         self.shortfname = ''           # data file name without path
         self.bPlotted = False           # not curve is plotted
+        self.dataInRange_x = []           # keep the x ['TIME'] of data in range  - first curve plotted
+        self.dataInRange_y = []           # keep the y of data in range  - first curve plotted
 
         self.lTestDATA = []      # the test data to be reviewed, each item is a class of data structure
                                     #  [testData1, testData2 ...]
@@ -41,7 +43,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         #self.dfData = pd.DataFrame()    # pandas dataframes to be plot
 
         # pyqtGraph 相关设置，必须要在self.setupUi之前
-        pyqtgraph.setConfigOption('background', 'w')  # before loading widget
+        pg.setConfigOption('background', 'w')  # before loading widget
 
 
         self.setupUi(self)
@@ -97,7 +99,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
 
         # layout
-        self.L = pyqtgraph.GraphicsLayout()
+        self.L = pg.GraphicsLayout()
         self.dataPlot.setCentralWidget(self.L)
 
         # x axis for time
@@ -117,7 +119,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         self.dataPlot.plotItem.hideAxis("bottom")
         #self.dataPlot.plotItem.hideAxis("left")
 
-        self.region = pyqtgraph.LinearRegionItem(values=(0, 1))
+        self.region = pg.LinearRegionItem(values=(0, 1))
         self.region.setZValue(10)
         self.dataPlotRange.addItem(self.region, ignoreBounds=True)
 
@@ -125,8 +127,8 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         viewbox.sigRangeChanged.connect(self.updateRegion)
 
 
-        self.vLine = pyqtgraph.InfiniteLine(angle=90, movable=False)
-        self.hLine = pyqtgraph.InfiniteLine(angle=0, movable=False)
+        self.vLine = pg.InfiniteLine(angle=90, movable=False)
+        self.hLine = pg.InfiniteLine(angle=0, movable=False)
         self.dataPlot.addItem(self.vLine, ignoreBounds=True)
         self.dataPlot.addItem(self.hLine, ignoreBounds=True)
 
@@ -139,10 +141,10 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         self.treeWidget.treeContextMenu.show()
 
     def updateViews(self):
-
+        pass
         # for i in range(0, len(self.chartVBs)):
-        viewbox = self.dataPlot.plotItem.vb
-        viewbox.setGeometry(viewbox.sceneBoundingRect())
+        #viewbox = self.dataPlot.plotItem.vb
+        #viewbox.setGeometry(viewbox.sceneBoundingRect())
         #viewbox.linkedViewChanged(viewbox, self.chartVBs[i].XAxis)
 
     def plotData(self, selectedItems):
@@ -153,42 +155,50 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         #dfData = self.winImpData.dfData
 
         plotItem = self.dataPlot.plotItem
-        #viewbox =  pyqtgraph.ViewBox()
-        plotItem.getAxis('bottom').setPen(pyqtgraph.mkPen(color='#000000', width=1))
+        #viewbox =  pg.ViewBox()
+        plotItem.getAxis('bottom').setPen(pg.mkPen(color='#000000', width=1))
         i = 0
         for iItem in selectedItems:
-            filename = iItem.parent().text(1)    # get the parent item name
+            if iItem.parent():     # not the root item
+                filename = iItem.parent().text(1)    # get the parent item name - filename
 
-            for iData in self.lTestDATA:
-                if filename == iData.getFileName():
-                    dfData = iData.dfTestData
-                    N = iData.N
-                    break
+                for iData in self.lTestDATA:          # find out the data from the data frame list by the filename
+                    if filename == iData.fileName:
+                        dfData = iData.data
+                        break                       # break out of the loop for data
 
-            i += 1
-            data_head = iItem.text(1)
-            # y axis
-            data_2_plot = list(dfData[data_head])
 
-            # get the list of time column
-            sTime = list(dfData['TIME'])
+                data_head = iItem.text(1)           # get the column name of data for plotting
+                # y axis
+                data_2_plot = list(dfData[data_head])
 
-            # convert the time in string to date time object
-            iTime = [self.sTimeToDateTime(j) for j in sTime]
+                # get the list of time column, for x axis
+                sTime = list(dfData['TIME'])
 
-            plotItem.hideAxis("bottom")
+                # convert the time in string to date time object
+                iTime = [self.sTimeToDateTime(j) for j in sTime]
 
-            # example
-            # pw.plot(x=[x.timestamp() for x in iTime ], y= list(df['BCVIIN']), pen = 'r')
-            plotcurve = pyqtgraph.PlotCurveItem(x=[x.timestamp() for x in iTime], y= data_2_plot, pen=self.colorDex[i%5])
-            plotItem.addItem(plotcurve)
+                plotItem.hideAxis("bottom")
 
-            if not self.bPlotted:
-                self.dataPlotRange.plot(y=data_2_plot)
-                #self.dataPlotRange.setZValue(1)
-                self.region.setRegion([len(dfData['TIME']) * 0.4, len(dfData['TIME']) * 0.6])
+                i += 1  # for color index use
 
-            self.bPlotted = True
+                # example
+                # pw.plot(x=[x.timestamp() for x in iTime ], y= list(df['BCVIIN']), pen = 'r')
+                plotcurve = pg.PlotCurveItem(x=[x.timestamp() for x in iTime], y= data_2_plot, pen=self.colorDex[i%5])
+                plotItem.addItem(plotcurve)
+
+                if not self.bPlotted:
+                    self.dataInRange_x = iTime
+                    self.dataInRange_y = data_2_plot
+
+                    self.dataPlotRange.plot(y=self.dataInRange_y)
+
+                    #self.dataPlotRange.setZValue(1)
+
+                    self.region.setRegion([len(self.dataInRange_x)*0.4, len(self.dataInRange_x)*0.6])
+
+                self.bPlotted = True
+
 
 
 
@@ -205,42 +215,49 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
     #     #self.updateViews()
 
-    #     pen1 = pyqtgraph.mkPen(color='b')
-    #     pen2 = pyqtgraph.mkPen(color='r')
+    #     pen1 = pg.mkPen(color='b')
+    #     pen2 = pg.mkPen(color='r')
     #
 
 
     def mouseMove(self, evt):
+
         if self.bPlotted:
             pos = evt  # [0]  ## using signal proxy turns original arguments into a tudfDataple
             # print(evt)
-            dfData=self.lTestDATA[0].dfTestData
+            dfData=self.lTestDATA[0].data
+            startTime = datetime.strptime('2018 '+ dfData['TIME'].iloc[0], '%Y %H:%M:%S:%f').timestamp()
+            endTime =  datetime.strptime('2018 '+ dfData['TIME'].iloc[-1], '%Y %H:%M:%S:%f').timestamp()
             if self.dataPlot.plotItem.sceneBoundingRect().contains(pos):
-                print('pos x: %0.1f + y: %0.1f' %(pos.x(), pos.y()) )
+                print('item pos x: %0.1f + y: %0.1f' %(pos.x(), pos.y()) )
                 mousePoint = self.dataPlot.plotItem.vb.mapSceneToView(pos)
-                print('pos x: %0.1f + y: %0.1f' %(mousePoint.x(), mousePoint.y()))
-                index = int(mousePoint.x())
+                print('view pos x: %0.1f + y: %0.1f' %(mousePoint.x(), mousePoint.y()))
+                x = int(mousePoint.x())
+
+                timeIndex = datetime.fromtimestamp(x).strftime('%H:%M:%S')  # convert x coord from timestamp to time string
                 #print('if3')
-                if index > 0 and index < len(dfData):
+                if x >   startTime and x < endTime:
                     # print('if4')
                     # print(index)
                     # print(mousePoint.x())
                     # print(self.dataSummary[self.item_Selected][index])
                     #self.label.setText("X = %0.1f; Y = %0.1f " %(mousePoint.x(), mousePoint.y())) #"<span style='font-size: 12pt'>x=%0.1f,   <span style='color: red'> Y1=%0.1f</span> " % (mousePoint.x(), float(dfData[index])))
-                    self.label.setText("<span style='font-size: 12pt'>x=%0.1f,   <span style='color: red'> Y1=%0.1f</span> " % (mousePoint.x(), mousePoint.y()))
+                    self.label.setText("<span style='font-size: 12pt'>Time=%s,   <span style='color: red'> Y1=%0.1f</span> " % (timeIndex, mousePoint.y()))
 
                 self.vLine.setPos(mousePoint.x())
                 self.hLine.setPos(mousePoint.y())
 
     def regionUpdate(self):
-        minX, maxX = self.region.getRegion()
-        self.dataPlot.setXRange(minX, maxX, padding=0)
+        pass
+        #minX, maxX = self.region.getRegion()
+        #self.dataPlot.setXRange(minX, maxX, padding=0)
 
     def updateRegion(self, window, viewRange):
         # window: viewbox
         # viewrange[0]: x axis   viewRange[1]: y axis
-        rgn = viewRange[0]
-        self.region.setRegion(rgn)
+        pass
+        #rgn = viewRange[0]
+        #self.region.setRegion(rgn)
 
     def openFile(self):
 
@@ -250,32 +267,10 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
          self.treeUpdate()
 
-
-
-
-    def loadData1(self,fname):  #data in a 2-dim array   not used
-        f1 = open(fname, 'r')
-        first_line = f1.readline().strip('\n')
-        self.treeItem = first_line.split()
-        self.dataSummary = [[] for col in range(self.treeItem.__len__())]
-        self.numTree = self.treeItem.__len__()
-
-        line = f1.readline().strip('\n')
-        while line:
-            temp_line = line.split()
-            for i in range(0, len(temp_line), 1):
-                self.dataSummary[i].append(temp_line[i])
-            line = f1.readline().strip('\n')
-
-        self.dataRow = self.dataSummary[1].__len__()
-        # print(self.treeItem)
-
-
-
     def treeUpdate(self):
         QTreeWidget.clear(self.treeWidget)
         for tdataset in self.lTestDATA:
-            fname = tdataset.getFileName()         #os.path.basename(self.winImpData.sDataFilePath)
+            fname = tdataset.fileName           #os.path.basename(self.winImpData.sDataFilePath)
             # if self.shortfname == '':
             #     self.shortfname = fname
             # elif self.shortfname == fname:
@@ -284,13 +279,13 @@ class clsDataView(QMainWindow, Ui_MainWindow):
             treeRoot = QTreeWidgetItem(self.treeWidget)
             treeRoot.setText(1, fname)
 
-            self.treeItem = tdataset.getColumnList()  # list(self.winImpData.dfData)
-            self.numTree = tdataset.getColNum     #self.treeItem.__len__()
+            self.treeItem = tdataset.header  # list(self.winImpData.dfData)
+            self.numTree = tdataset.column     #self.treeItem.__len__()
 
 
 
 
-            for i in range(1, len(self.treeItem), 1):
+            for i in range(1, len(self.treeItem)):
                 child = QTreeWidgetItem(treeRoot)
                 child.setText(0, str(i))
                 child.setText(1, self.treeItem[i])
@@ -303,11 +298,11 @@ class clsDataView(QMainWindow, Ui_MainWindow):
     #     temp.setLabels(left='axis 1')
     #
     #     temp.setLabel('bottom', 'Time', units='s', **{'font-size': '20pt'})
-    #     temp.getAxis('bottom').setPen(pyqtgraph.mkPen(color='#000000', width=1))
+    #     temp.getAxis('bottom').setPen(pg.mkPen(color='#000000', width=1))
     #     # temp.showAxis('right')
     #     temp_2_plot = self.dataSummary[int(currentItem.text(0))]
     #     # print(temp_2_plot)
-    #     pen1 = pyqtgraph.mkPen(color='b') #, width=2)
+    #     pen1 = pg.mkPen(color='b') #, width=2)
     #     self.first_curve = temp.plot([float(x) for x in temp_2_plot], pen=pen1)
     #     #self.chartPlotItems.append(temp)
 
@@ -320,9 +315,9 @@ class clsDataView(QMainWindow, Ui_MainWindow):
     #
     #         if selectedItems[i] != currentItem:
     #             # print('3')
-    #             temp_vb = pyqtgraph.ViewBox()
+    #             temp_vb = pg.ViewBox()
     #
-    #             ax_temp = pyqtgraph.AxisItem('right')
+    #             ax_temp = pg.AxisItem('right')
     #
     #             # self.chartPlotItems[0].layout.clear()
     #
@@ -334,7 +329,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
     #             # print('4')
     #             temp_2_plot = self.dataSummary[int(selectedItems[i].text(0))]
     #             # print(temp_2_plot[:100])
-    #             temp_plotcurve = pyqtgraph.PlotCurveItem([float(x) for x in temp_2_plot], pen=self.colorDex[i])
+    #             temp_plotcurve = pg.PlotCurveItem([float(x) for x in temp_2_plot], pen=self.colorDex[i])
     #             temp_vb.addItem(temp_plotcurve)
     #
     #             self.chartVBs.append(temp_vb)
@@ -346,19 +341,20 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
 
 
-    class TimeAxisItem(pyqtgraph.AxisItem): #### class TimeAxisItem is used for overloading x axis as time
+    class TimeAxisItem(pg.AxisItem): #### class TimeAxisItem is used for overloading x axis as time
         def tickStrings(self, values, scale, spacing):
             # show hour:minute:second on the x axis
             return [datetime.fromtimestamp(value).strftime('%H:%M:%S') for value in values]
 
     def sTimeToDateTime(self, inTime):  # convert time from string to datetime object
         # inTime: '13:43:02:578' string type
-        # outTime: 2018-08-22 13:43:02.578000  datetime object
+        # outTime: 2018-01-01 13:43:02.578000  datetime object
 
-        itime = inTime.split(':')
-        # add current date to the TIME for the sake of format of datetime class. could use real date of the data created
-        rtime = datetime.now().date().isoformat() + ' ' + itime[0] + ':' + itime[1] + ':' + itime[2] + '.' + itime[3]  # with date
-        return datetime.strptime(rtime, '%Y-%m-%d %H:%M:%S.%f')  # convert the time from string to the datetime format
+        # '2018 ' + startTime, '%Y %H:%M:%S'
+        #itime = inTime[:8] + "." + inTime[10:12]   # convert 13:43:02:578 to 13:43:02.578
+        # add date (2018-01-01)to the TIME for the sake of format of datetime class. could use real date of the data created
+
+        return datetime.strptime('2018 ' + inTime, '%Y %H:%M:%S:%f')  # convert the time from string to the datetime format
 
 
 class dataParam:

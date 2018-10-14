@@ -1,35 +1,37 @@
 import pandas as pd
 
-class clsTestData:
-    def __init__(self, filename, lstTime):
-        self.strFileName = filename   # short file name string
-        self.N = 1  # column number in the data frame, TIME column is counted in
-        self.lstColumns = ['TIME']   # list of columns
-        self.dfTestData = pd.DataFrame()
-        self.dfTestData['TIME'] = lstTime  # dataframe of data
+class clsTestData:    # the structure to store the filtered data
+    def __init__(self, filename):
+        self.fileName = filename   # short file name string
+        self.rate = 0    # sampling rate - frequency
+        self.column = 0  # column number in the data frame
+        self.row = 0  # rows number
+        self.header = []   # list of columns header
+        self.data = pd.DataFrame()  # data frame for test data
+
 
 
     def setFileName(self, filename):
-        self.strFileName = filename
+        self.fileName = filename
     def getFileName(self):
-        return self.strFileName
+        return self.fileName
 
     def getColumnList(self):
-        return self.lstColumns
+        return self.header
 
 
-    def addColumnData(self,colName,colDataList):
-        if colName not in self.lstColumns:
-            self.N += 1
-            self.lstColumns.append(colName)
-            self.dfTestData[colName] = colDataList  # dataframe of data
+    def addColumnData(self,colName,colDataList):  # add data of one column
+        if colName not in self.header:
+            self.column += 1
+            self.header.append(colName)
+            self.data[colName] = colDataList  # dataframe of data
 
     def getColNum(self):
-        return self.N
+        return self.column
     def removeColumnData(self,colName):
         if colName == 'TIME':
             return
-        if colName in self.lstColumns:
-            self.N -= 1
-            self.lstColumns.remove(colName)
-            del self.dfTestData[colName]
+        if colName in self.header:
+            self.column -= 1
+            self.header.remove(colName)
+            del self.data[colName]
