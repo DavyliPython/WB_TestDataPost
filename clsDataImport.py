@@ -29,8 +29,17 @@ class clsImportData(QDialog, Ui_winImportData):
         self.btnImport.clicked.connect(self.ImportDataToDf)
         self.btnExport.clicked.connect(self.ExportDataToFile)
         self.btnBrowse_out.clicked.connect(self.getPathOfExport)
+        self.btnReset.clicked.connect(self.resetSettings)
+        self.btnSelectAll.clicked.connect(self.selectAllColumns)
+        self.btnSelectNone.clicked.connect(self.selectNone)
 
         self.sbRate.valueChanged.connect(self.rateValueChange)
+
+        self.teFromTime.timeChanged.connect(self.changeTimefrom)
+        self.teToTime.timeChanged.connect(self.changeTimeto)
+        # self.teFromTime.editingFinished.connect(self.editedTimeFrom)
+
+        self.tblreviewdata.itemSelectionChanged.connect(self.selectionForGo)
 
 
         self.dataparam = dataparam  # data parameter class for conversion use
@@ -40,8 +49,8 @@ class clsImportData(QDialog, Ui_winImportData):
 
         self.sDataFilePath = "C://"
         self.iFileSize = 0
-        self.iDataRate = 0
-        self.newRate = 0
+        self.iDataRate = 0                  # the rate of data file
+        self.newRate = 0                    # the rate of resampling
         self.startTime = "00:00:00"         # the start time in the data file
         self.endTime = "00:00:00"           # the end time in the data file
 
@@ -55,6 +64,9 @@ class clsImportData(QDialog, Ui_winImportData):
 
         self.parColImported = []  # parameter column to be imported to main window for review
         self.dfImptedData = pd.DataFrame()   # the dataframe to keep the imported data set
+
+        self.btnImport.setEnabled(False)
+        self.btnExport.setEnabled(False)
 
 
     def initImpUI(self):
@@ -76,6 +88,14 @@ class clsImportData(QDialog, Ui_winImportData):
         self.qleRate.setText(str(self.iDataRate))
         self.sbRate.setValue(self.iDataRate)
 
+    def resetSettings(self):
+        self.sbRate.setValue(self.iDataRate)
+        self.teFromTime.setTime(datetime.strptime('2018 ' + self.startTime, '%Y %H:%M:%S').time())
+        self.teToTime.setTime(datetime.strptime('2018 ' + self.endTime, '%Y %H:%M:%S').time())
+        self.qleFromRow.setText(str(self.firstRow))
+        self.qleToRow.setText(str(self.lastRow))
+        self.btnImport.setEnabled(True)
+        self.progressBar.setValue(0)
 
     def setStartTime(self):
         pass
@@ -86,13 +106,61 @@ class clsImportData(QDialog, Ui_winImportData):
         #self.teToTime.setText(self.sEndTime)
 
     def setStartRow(self):
-        self.qleFromRow.setText(str(self.iStartRow))
+        self.qleFromRow.setText(str(self.firstRow))
 
     def setEndRow(self):
         self.qleToRow.setText(str(self.iEndRow))
 
+    def selectAllColumns(self):
+        self.tblreviewdata.selectAll()
+        self.btnImport.setEnabled(True)
+        self.btnExport.setEnabled(True)
+
+    def selectNone(self):
+        self.tblreviewdata.clearSelection()
+        self.btnImport.setEnabled(False)
+        self.btnExport.setEnabled(False)
+
+    def selectionForGo(self):
+        if self.tblreviewdata.selectedItems():
+            self.btnImport.setEnabled(True)
+            self.btnExport.setEnabled(True)
+
+    def changeTimefrom(self):
+
+        self.sStartTime = self.teFromTime.text()  # the new start time to be plotted
+        if self.sStartTime > self.startTime and self.sStartTime < self.endTime:
+            self.iStartRow = self.firstRow + self.offsetRowByTime(self.startTime,self.sStartTime,self.iDataRate)
+            if self.iStartRow > self.lastRow:  self.iStartRow = self.lastRow
+            self.qleFromRow.setText(str(self.iStartRow))
+        else:
+            self.btnImport.setEnabled(False)
+            self.btnExport.setEnabled(False)
+            self.iStartRow = self.firstRow
+            self.iEndRow = self.lastRow
+            self.qleFromRow.setText(str(self.iStartRow))
+            self.qleToRow.setText(str(self.iEndRow))
 
 
+
+    # def editedTimeFrom(self):
+    #      if self.sStartTime < self.startTime or self.sStartTime > self.endTime:
+    #         #self.teFromTime.setTime(datetime.strptime('2018 ' + self.startTime, '%Y %H:%M:%S').time())
+    #         self.qleFromRow.setText(self.iStartRow)
+
+    def changeTimeto(self):
+        self.sEndTime = self.teToTime.text()  # the new start time to be plotted
+        if self.sEndTime < self.endTime and self.sEndTime > self.startTime:
+            self.iEndRow = self.firstRow + self.offsetRowByTime(self.startTime,self.sEndTime,self.iDataRate)
+            if self.iEndRow < self.firstRow: self.iEndRow = self.firstRow
+            self.qleToRow.setText(str(self.iEndRow))
+        else:
+            self.btnImport.setEnabled(False)
+            self.btnExport.setEnabled(False)
+            self.iStartRow = self.firstRow
+            self.iEndRow = self.lastRow
+            self.qleFromRow.setText(str(self.iStartRow))
+            self.qleToRow.setText(str(self.iEndRow))
 
     def openDateFile(self):
         fname = QFileDialog.getOpenFileName(self, 'Open file', 'C:\\onedrive\\OneDrive - Honeywell\\VPD\\test data\\_8hz_test_sample.txt', "Text Files (*.txt);;All Files (*)")
@@ -126,12 +194,13 @@ class clsImportData(QDialog, Ui_winImportData):
                 self.startTime = dfData['TIME'].iloc[0][:8]
                 self.sStartTime = self.startTime   # default selected time is same as the data start time
                 #self.setStartTime()
-                self.teDataFromTime.setTime(datetime.strptime('2018 ' + self.sStartTime, '%Y %H:%M:%S').time())
-                self.teFromTime.setTime(datetime.strptime('2018 ' + self.sStartTime, '%Y %H:%M:%S').time())
+                self.teDataFromTime.setTime(datetime.strptime('2018 ' + self.startTime, '%Y %H:%M:%S').time())
+                self.teFromTime.setTime(datetime.strptime('2018 ' + self.startTime, '%Y %H:%M:%S').time())
 
                 self.qleColumns.setText(str(dfData.shape[1]))
 
                 self.iStartRow = self.firstRow
+                self.qleFromRow.setText(str(self.firstRow))
                 #self.setStartRow()
 
                 self.lastRow = self.estRowNum(self.sDataFilePath)
@@ -150,9 +219,6 @@ class clsImportData(QDialog, Ui_winImportData):
 
                 # do the time consuming work of scan the data file
                 self.populatePreviewTable()
-
-
-
 
 
 
@@ -193,8 +259,8 @@ class clsImportData(QDialog, Ui_winImportData):
                     output:
                         offset in row: int, + for forward and - for backward
                 '''
-        i = datetime.strptime('2018 ' + startTime, '%Y %H:%M:%S') # get the time stamp
-        j = datetime.strptime('2018 ' + endTime, '%Y %H:%M:%S')   # get the time stamp of end time
+        i = datetime.strptime('2018 ' + startTime, '%Y %H:%M:%S').timestamp()   # get the time stamp
+        j = datetime.strptime('2018 ' + endTime, '%Y %H:%M:%S').timestamp()   # get the time stamp of end time
         duration = j - i     # duration, + for forward and - for backward
 
         return round(duration * rate)
@@ -294,19 +360,13 @@ class clsImportData(QDialog, Ui_winImportData):
 
 
 
-
-
-    def ImportDataToDf(self):
-        #self.winImportData  send signal to hide the window
+    def processData(self):
         datafilename = os.path.basename(self.sDataFilePath)  # get the filename
-
-        if not self.tblreviewdata.selectedIndexes(): return  # no selection
-
         if datafilename:   # data file existing
 
             # get the selected column header
             dfData = pd.read_csv(self.sDataFilePath, delim_whitespace=True, nrows=1, error_bad_lines=False)  # read 1 line
-            header = list(dfData)    # get the header to a list
+            #header = list(dfData)    # get the header to a list
 
             selectedColumnHeader = ['TIME']
 
@@ -317,14 +377,38 @@ class clsImportData(QDialog, Ui_winImportData):
                 if columnhead != 'TIME' and columnhead not in selectedColumnHeader:
                     selectedColumnHeader.append(columnhead)  # add column header to the list
 
+            if len(selectedColumnHeader) == 1:
+                QMessageBox.warning(self, 'Warning', "Select at least one column other than 'TIME'!")
+                return
 
         # read the data file with changed rate and selected columns
 
             dfData = pd.read_csv(self.sDataFilePath, delim_whitespace=True, error_bad_lines=False,iterator=True)
 
-            chunkSize = max(2048, self.iDataRate ) # 2048 # self.iDataRate  2K rows
+            if self.lastRow - self.iStartRow >= 2048:           # set chunk size to 2048 (2K rows) as standard size
+                chunkSize = max(2048, self.iDataRate )
+            else:
+                chunkSize = min(2048, self.lastRow - self.iStartRow )
             chunks = []
-            extract_row_range = range(0, self.iDataRate,self.iDataRate//self.newRate)
+
+            global rows_readover     # the row read over
+            rows_readover = 0
+            try:
+                if self.iStartRow > chunkSize:
+                    for j in range ( self.iStartRow//chunkSize):
+                        dfData.get_chunk(chunkSize)   # skip the first rows of iStartRow
+                        rows_readover += chunkSize
+                        self.progressBar.setValue(round(rows_readover / self.lastRow * 100))
+                    dfData.get_chunk(self.iStartRow - rows_readover)
+                else:
+                    dfData.get_chunk(self.iStartRow - 1 )
+                rows_readover = self.iStartRow            # the row read over
+                self.progressBar.setValue(round(rows_readover / self.lastRow * 100))
+
+            except Exception as e:
+                pass
+
+            extract_row_range = range(0, chunkSize - 1, self.iDataRate // self.newRate)
 
             while True:
                 try:
@@ -332,9 +416,9 @@ class clsImportData(QDialog, Ui_winImportData):
                     chunkOfSelected = chunk[selectedColumnHeader]
                     chunkOfSelected = chunkOfSelected.iloc[extract_row_range,:]
                     chunks.append(chunkOfSelected)
-
-                    self.progressBar.setValue(round(chunk.first_valid_index()/self.lastRow *100))
-
+                    rows_readover += chunkSize
+                    self.progressBar.setValue(round(rows_readover/self.lastRow *100))
+                    if rows_readover > self.iEndRow: break
                 except StopIteration:
                     print("data imported") #QMessageBox.critical (self, "Error", 'Iteration is stopped')
                     break
@@ -347,37 +431,53 @@ class clsImportData(QDialog, Ui_winImportData):
             strTestData.header = selectedColumnHeader
             strTestData.column = dfData.shape[1]
             strTestData.row = dfData.shape[0]
-            strTestData.rate = int(self.qleRate.text())
+            strTestData.rate = int(self.sbRate.text())
             strTestData.data = dfData
 
-            if not self.lTESTDATA:  # it is the first data set
-                self.lTESTDATA.append(strTestData)
-            else:
-                for i in self.lTESTDATA:   # check if the data file name is in the list
-                    if datafilename == i.getFileName():
-                        i.header = selectedColumnHeader
-                        i.column = len(selectedColumnHeader)
-                        i.row = len(dfData['TIME'])
-                        i.rate = int(self.qleRate.text())
-                        i.data = dfData
-                    else:
-                        self.lTESTDATA.append(strTestData)  # add current selection data into the testdata list
+            return strTestData
 
+
+    def ImportDataToDf(self):
+        if not self.tblreviewdata.selectedIndexes(): return  # no selection
+
+        strTestData = self.processData()
+        if not self.lTESTDATA:  # it is the first data set
+            self.lTESTDATA.append(strTestData)
+        else:
+            for i in self.lTESTDATA:   # check if the data file name is in the list
+                if strTestData.fileName == i.getFileName():
+                    i.header = strTestData.header
+                    i.column = strTestData.column
+                    i.row = strTestData.row
+                    i.rate = strTestData.rate
+                    i.data = strTestData.data
+                else:
+                    self.lTESTDATA.append(strTestData)  # add current selection data into the testdata list
 
         self.close()
 
-
-
     def ExportDataToFile(self):
-        pass
+        if not self.tblreviewdata.selectedIndexes(): return  # no selection
+        file_out = self.qleFilePath_out.text()
+        if file_out[-4:].upper() != '.TXT': return
+        strTestData = self.processData()    # process the data by selection of time, rate...
+
+        try:
+            strTestData.data.to_csv(file_out,sep = "\t", index = False)
+
+        except Exception as e:
+            QMessageBox.Critical(self, "Error","Error in writing data to file" + e.__str__()  )
+
+        self.progressBar.setValue(100)
+        QMessageBox.information(self, "Export", "Writed data to file successfully.")
 
     def getPathOfExport(self):
         fname = QFileDialog.getSaveFileName(self,'Save as:',
                                             os.path.dirname(self.sDataFilePath),
                                             "Text Files (*.txt)")
         if fname[0]:  # process only the one selection
+            self.qleFilePath_out.setText(fname[0])   # the file with path to save data
 
-            print(fname[0])
 
     def rateValueChange(self):
         if int(self.sbRate.text()) != 0:

@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import QMainWindow, QFileDialog, QTreeWidget, QTreeWidgetItem, QWidget
+from PyQt5.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem
 from PyQt5.QtGui import QIcon
-from PyQt5.Qt import QMenu, Qt, QAction, QCursor, QApplication
+from PyQt5.Qt import QMenu, Qt, QAction, QCursor
 from PyQt5 import QtGui
 
 import pyqtgraph as pg
