@@ -460,6 +460,9 @@
     <property name="inputMethodHints">
      <set>Qt::ImhPreferNumbers|Qt::ImhTime</set>
     </property>
+    <property name="currentSection">
+     <enum>QDateTimeEdit::SecondSection</enum>
+    </property>
     <property name="displayFormat">
      <string>hh:mm:ss</string>
     </property>
@@ -497,7 +500,7 @@
      </time>
     </property>
     <property name="currentSection">
-     <enum>QDateTimeEdit::HourSection</enum>
+     <enum>QDateTimeEdit::SecondSection</enum>
     </property>
     <property name="displayFormat">
      <string>hh:mm:ss</string>

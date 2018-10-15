@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QMainWindow, QFileDialog, QTreeWidget, QTreeWidgetItem, QWidget
 from PyQt5.QtGui import QIcon
 from PyQt5.Qt import QMenu, Qt, QAction, QCursor, QApplication
+from PyQt5 import QtGui
 
 import pyqtgraph as pg
 import pandas as pd
@@ -59,18 +60,30 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
     def initUI(self):
         # 添加打开菜单
-        selFileAction = QAction(QIcon('open.png'), 'Open', self)
+        selFileAction = QAction(QIcon('open.png'), '&Open', self)
         selFileAction.setShortcut('Ctrl+O')
         selFileAction.setStatusTip('Open new File')
         selFileAction.triggered.connect(self.openFile)     # open data file
         selFileAction.setIcon(QIcon('import.ico'))
 
+
+        exitAction = QtGui.QAction(QIcon('exit.png'), '&Exit', self)
+        exitAction.setShortcut('Ctrl+Q')
+        exitAction.setStatusTip('Exit the application')
+        #exitAction.triggered.connect(QtGui.qApp.quit)
+        exitAction.triggered.connect(self.exitAPP)     # exit the application
+
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')
         fileMenu.addAction(selFileAction)            # link menu bar to openfile action
+        fileMenu.addAction(exitAction)
 
-        toolBar = self.addToolBar("File")
+
+        toolBar = self.addToolBar("Open")
         toolBar.addAction(selFileAction)             # link tool bar to openfile action
+
+        # toolBar = self.addToolBar('Exit')
+        # toolBar.addAction(selExitAction)  # link menu bar to openfile action
 
         # 设置dataPlot  class: PlotWidget
         self.dataPlot.plotItem.showGrid(True, True, 0.5)
@@ -266,6 +279,14 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         #fname = 'C:\\onedrive\\OneDrive - Honeywell\\VPD\\test data\\32Hz-429-100kn.txt'
 
          self.treeUpdate()
+
+    def exitAPP(self):
+        choice = QtGui.QMessageBox.question(self, 'Exit', "Close the application?",
+                                            QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
+        if choice == QtGui.QMessageBox.Yes:
+            sys.exit()
+        else:
+            pass
 
     def treeUpdate(self):
         QTreeWidget.clear(self.treeWidget)
