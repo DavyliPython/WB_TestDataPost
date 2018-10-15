@@ -40,8 +40,8 @@ class clsImportData(QDialog, Ui_winImportData):
 
         self.sDataFilePath = "C://"
         self.iFileSize = 0
-        self.iDataRate = 1
-        self.newRate = 1
+        self.iDataRate = 0
+        self.newRate = 0
         self.startTime = "00:00:00"         # the start time in the data file
         self.endTime = "00:00:00"           # the end time in the data file
 
@@ -312,7 +312,7 @@ class clsImportData(QDialog, Ui_winImportData):
 
             indexes = self.tblreviewdata.selectedIndexes()  # the indexes of current selections
 
-            for i in range (0, len(indexes), int(self.qleRows.text())):
+            for i in range (0, len(indexes), self.tblreviewdata.rowCount()):
                 columnhead = list(dfData)[indexes[i].column()]  # get the selected column header
                 if columnhead != 'TIME' and columnhead not in selectedColumnHeader:
                     selectedColumnHeader.append(columnhead)  # add column header to the list
@@ -322,18 +322,19 @@ class clsImportData(QDialog, Ui_winImportData):
 
             dfData = pd.read_csv(self.sDataFilePath, delim_whitespace=True, error_bad_lines=False,iterator=True)
 
-            chunkSize = 2048 # self.iDataRate  2K rows
+            chunkSize = max(2048, self.iDataRate ) # 2048 # self.iDataRate  2K rows
             chunks = []
             extract_row_range = range(0, self.iDataRate,self.iDataRate//self.newRate)
-            i = 0
+
             while True:
                 try:
                     chunk = dfData.get_chunk(chunkSize)
                     chunkOfSelected = chunk[selectedColumnHeader]
                     chunkOfSelected = chunkOfSelected.iloc[extract_row_range,:]
                     chunks.append(chunkOfSelected)
-                    i = i + 1
-                    self.progressBar.setValue(i * chunkSize/self.lastRow)
+
+                    self.progressBar.setValue(round(chunk.first_valid_index()/self.lastRow *100))
+
                 except StopIteration:
                     print("data imported") #QMessageBox.critical (self, "Error", 'Iteration is stopped')
                     break
@@ -379,7 +380,8 @@ class clsImportData(QDialog, Ui_winImportData):
             print(fname[0])
 
     def rateValueChange(self):
-        self.sbRate.setSingleStep(int(self.sbRate.text())/2)
-        self.newRate = int(int(self.sbRate.text())/2)
+        if int(self.sbRate.text()) != 0:
+            self.sbRate.setSingleStep(int(self.sbRate.text())/2)
+            self.newRate = int(self.sbRate.text())
 
 
