@@ -414,7 +414,9 @@ class clsImportData(QDialog, Ui_winImportData):
                 try:
                     chunk = dfData.get_chunk(chunkSize)
                     chunkOfSelected = chunk[selectedColumnHeader]
-                    chunkOfSelected = chunkOfSelected.iloc[extract_row_range,:]
+                    if chunkOfSelected.shape[0] < len(extract_row_range):
+                        extract_row_range = range(0, chunkOfSelected.shape[0] - 1, self.iDataRate // self.newRate)
+                    chunkOfSelected = chunkOfSelected.iloc[extract_row_range, :]
                     chunks.append(chunkOfSelected)
                     rows_readover += chunkSize
                     self.progressBar.setValue(round(rows_readover/self.lastRow *100))
