@@ -341,13 +341,16 @@ class clsImportData(QDialog, Ui_winImportData):
 
     def populatePreviewTable(self):
 
-         # change the head of table
-        self.tblreviewdata.setHorizontalHeaderLabels(self.dataHeader)
-        #self.tblreviewdata.horizontalHeaderItem().setTextAlignment(Qt.AlignHCenter)
+        self.tblreviewdata.clear()
 
         # populate data to the table
         self.tblreviewdata.setRowCount(len(self.data2review.index))
         self.tblreviewdata.setColumnCount(len(self.data2review.columns))
+
+         # change the head of table
+        self.tblreviewdata.setHorizontalHeaderLabels(self.dataHeader)
+        #self.tblreviewdata.horizontalHeaderItem().setTextAlignment(Qt.AlignHCenter)
+
         for i, row in self.data2review.iterrows():
             for j in range (len(self.data2review.columns)): #, val in row
                 if j == 0:
@@ -370,10 +373,14 @@ class clsImportData(QDialog, Ui_winImportData):
 
             selectedColumnHeader = ['TIME']
 
-            indexes = self.tblreviewdata.selectedIndexes()  # the indexes of current selections
+            # indexes = self.tblreviewdata.selectedIndexes()  # the indexes of current selections
+            # for i in range (0, len(indexes), self.tblreviewdata.rowCount()):
+            #     columnhead = list(dfData)[indexes[i].column()]  # get the selected column header
 
-            for i in range (0, len(indexes), self.tblreviewdata.rowCount()):
-                columnhead = list(dfData)[indexes[i].column()]  # get the selected column header
+            indexes = self.tblreviewdata.selectionModel().selectedColumns()  # the indexes of current selected columns
+
+            for i in range(0, len(self.tblreviewdata.selectionModel().selectedColumns())):   # get the column index number
+                columnhead = list(dfData)[indexes[i].column()]     # get the column header label
                 if columnhead != 'TIME' and columnhead not in selectedColumnHeader:
                     selectedColumnHeader.append(columnhead)  # add column header to the list
 
@@ -393,22 +400,22 @@ class clsImportData(QDialog, Ui_winImportData):
 
             global rows_readover     # the row read over
             rows_readover = 0
-            try:
-                if self.iStartRow > chunkSize:
+            try:                        # skip the rows if start from row 1 to iStartRow
+                if self.iStartRow > chunkSize:                  # the start rows > chunksize
                     for j in range ( self.iStartRow//chunkSize):
-                        dfData.get_chunk(chunkSize)   # skip the first rows of iStartRow
+                        dfData.get_chunk(chunkSize)
                         rows_readover += chunkSize
                         self.progressBar.setValue(round(rows_readover / self.lastRow * 100))
                     dfData.get_chunk(self.iStartRow - rows_readover)
                 else:
-                    dfData.get_chunk(self.iStartRow - 1 )
-                rows_readover = self.iStartRow            # the row read over
+                    dfData.get_chunk(self.iStartRow - 1 )      # skip once for size of iStartRow, starting from 0
+                rows_readover = self.iStartRow - 1           # the row read over
                 self.progressBar.setValue(round(rows_readover / self.lastRow * 100))
 
             except Exception as e:
                 pass
 
-            extract_row_range = range(0, chunkSize - 1, self.iDataRate // self.newRate)
+            extract_row_range = range(0, chunkSize - 1, self.iDataRate // self.newRate)    # get the rows of newrate per the rows of data rate
 
             while True:
                 try:
