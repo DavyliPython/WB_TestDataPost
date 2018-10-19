@@ -208,7 +208,7 @@ class Ui_winImportData(object):
         self.teDataFromTime.setDisplayFormat(_translate("winImportData", "hh:mm:ss"))
         self.label_24.setText(_translate("winImportData", "To:"))
         self.teDataToTime.setDisplayFormat(_translate("winImportData", "hh:mm:ss"))
-        self.leRows.setText(_translate("winImportData", "10"))
+        self.leRows.setText(_translate("winImportData", "200"))
         self.groupBox_2.setTitle(_translate("winImportData", "Export Setting"))
         self.label_15.setText(_translate("winImportData", "Sampling Rate ( Hz)"))
         self.label_7.setText(_translate("winImportData", "Time Starting from:"))
