@@ -24,7 +24,8 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         self.colorDex = ['#7CFC00', '#B22222', '#E0FFFF', '#FFFF00', '#66FF00']
 
         self.lPlottedItems = []         # list of plotItems in the dataplot area
-        self.lPlotWindows = []            # list of plot window
+        self.currentPlotWin = ''        # keep current selected plot window for next curve plotting
+        self.lPlotWindows = ['plot1']            # list of plot window
         self.lViewBoxes = []              # list of View box corresponding to the plotitem
         self.lAxisItems = []           # list of axis item of the layout of plotItem
         self.lPlottedCurves = []            # list of plotCurves of each plotItem
@@ -39,6 +40,12 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                                     #  [(filename, column name, dataframe of data)
         self.parColPlotted = []           # parameter column in plotting
 
+        # for linear region use
+        self.rgnXmin = 0
+        self.rgnXmax = 1
+        self.rgnXfactor = 1
+
+
             # r'C:\onedrive\OneDrive - Honeywell\VPD\parameters code.csv'
         self.dataparam = dataParam()   # data parameter definition
         #self.dataparam = dateParam()
@@ -49,16 +56,23 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         # pyqtGraph 相关设置，必须要在self.setupUi之前
         pg.setConfigOption('background', 'w')  # before loading widget
 
+        # # set the time axis of X
+        xAxis = self.TimeAxisItem(orientation='bottom')
+        self.dataPlot = pg.PlotWidget(self, axisItems={'bottom': xAxis}, name='plot1')
 
         self.setupUi(self)
         self.initUI()
 
 
         self.show()
-        self.showMaximized()
+        #self.showMaximized()   # max the window
 
 
     def initUI(self):
+
+
+
+
         # 添加打开菜单
         selFileAction = QAction(QIcon('open.png'), '&Open', self)
         selFileAction.setShortcut('Ctrl+O')
@@ -78,6 +92,9 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         addPlotAction = QtGui.QAction(QIcon('Addplot.png'), 'Add a Plot', self)
         addPlotAction.triggered.connect(self.addDataPlot)
 
+        removePlotAction = QtGui.QAction(QIcon('Addplot.png'), 'Remove a Plot', self)
+        removePlotAction.triggered.connect(self.removeDataPlot)
+
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')         # add menu File
         fileMenu.addAction(selFileAction)            # link menu bar to openfile action with a menu item
@@ -86,6 +103,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         plotMenu = menubar.addMenu("Plot")           # add menu Plot
         plotMenu.addAction(clearAction)               # add menu item of 'Clear' plot
         plotMenu.addAction(addPlotAction)             # add menu item of 'Add a Plot'
+        plotMenu.addAction(removePlotAction)          # add menu item of 'Add a Plot'
 
         toolBar = self.addToolBar("Open")
         toolBar.addAction(selFileAction)             # link tool bar to openfile action
@@ -97,7 +115,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         self.dataPlot.plotItem.showGrid(True, True, 0.5)
 
         self.dataPlot.setAutoVisible(y=True)
-        self.dataPlot.plotItem.hideAxis("bottom")
+        #self.dataPlot.plotItem.hideAxis("bottom")
         #self.dataPlot.plotItem.hideAxis("left")
         self.dataPlotRange.setMouseEnabled(x=False, y=False)  # dataPlotRange 不能移动
         self.dataPlotRange.plotItem.hideAxis('left')
@@ -107,10 +125,12 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         self.treeWidget.setContextMenuPolicy(Qt.CustomContextMenu)
         self.treeWidget.customContextMenuRequested.connect(self.showContextMenu)
         self.treeWidget.treeContextMenu = QMenu(self)
-        self.actionA = self.treeWidget.treeContextMenu.addAction(u'Plot')
+        self.actionA = self.treeWidget.treeContextMenu.addAction(u'Plot in plot1')
+
+
         self.actionA.triggered.connect(
             #lambda: self.chartPlot(self.treeWidget.currentItem(), self.treeWidget.selectedItems()))
-            lambda: self.plotData(self.treeWidget.selectedItems()))
+            lambda: self.plotData(self.treeWidget.selectedItems(), 'plot1'))
         self.treeWidget.setColumnCount(4)
         self.treeWidget.setHeaderLabels(['#', 'Parameter', 'Parameter Name', 'Unit'])
         self.treeWidget.setColumnWidth(0, 10)
@@ -127,7 +147,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         # x axis for time
         xAxis = self.TimeAxisItem("bottom")
 
-        self.L.addItem(xAxis, row=2, col=6, rowspan=1, colspan=1)
+        #self.L.addItem(xAxis, row=2, col=6, rowspan=1, colspan=1)
 
         # plotitem and viewbox
         ## at least one plotitem is used whioch holds its own viewbox and left axis
@@ -145,13 +165,16 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         self.dataPlotRange.addItem(self.lr)  # ignoreBounds=True
         self.lr.setRegion([0.4,0.6])
         #
-        self.lr.sigRegionChanged.connect(self.updatePlot)
-        viewBox.sigXRangeChanged.connect(self.updateRegion)
+        # self.lr.sigRegionChanged.connect(self.updatePlot)
+        # viewBox.sigXRangeChanged.connect(self.updateRegion)
 
         self.dataPlot.plotItem.scene().sigMouseMoved.connect(self.mouseMove)
+        #self.dataPlot.plotItem.scene().sigMouseClicked.connect(self.mouseClick)
         # self.region.setRegion()
 
         self.configPlotArea(self.dataPlot)
+
+
 
 
 
@@ -181,14 +204,38 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
     def updatePlot(self):
         #self.dataPlot.setXRange(*self.lr.getRegion(), padding=0)
-        [x1, x2] = self.lr.getRegion()
-        xmin = self.rgnXmin + x1 * self.rgnXfactor
-        xmax = self.rgnXmin + x2 * self.rgnXfactor
-        self.dataPlot.setXRange(xmin, xmax)
-        # (self.rgnXmin + self.rgnXfactor * len(iTime))(self.rgnXmin + self.rgnXfactor * len(iTime))
+        if self.bPlotted:
+            [x1, x2] = self.lr.getRegion()
+            # try:
+            #     xmin = self.rgnXmin + x1 * self.rgnXfactor
+            #     xmax = self.rgnXmin + x2 * self.rgnXfactor
+            # except Exception as e:
+            #     xmin = x1
+            #     xmax = x2
+            #self.dataPlot.setXRange(x1, x2 )
+            # (self.rgnXmin + self.rgnXfactor * len(iTime))(self.rgnXmin + self.rgnXfactor * len(iTime))
 
     def updateRegion(self):
-        self.lr.setRegion(self.dataPlot.getViewBox().viewRange()[0])
+        if self.bPlotted:
+            #self.lr.setRegion([x for x in self.dataPlot.getViewBox().viewRange()[0]])
+            pass
+
+    def updatePlots(self):
+        # for i in range(0, len(self.chartVBs)):
+        #     self.chartVBs[i].setGeometry(self.chartPlotItems[0].vb.sceneBoundingRect())
+        #     self.chartVBs[i].linkedViewChanged(self.chartPlotItems[0].vb, self.chartVBs[i].XAxis)
+        for i in range(self.dataPlotLayout.count()):
+            plotItem = self.dataPlotLayout.itemAt(i).widget()
+
+            #plotItem.getViewBox().setGeometry(plotItem.getViewBox().sceneBoundingRect())
+            #plotItem.getViewBox().linkedViewChanged(plotItem.getViewBox(), plotItem.getViewBox().XAxis)
+            pass
+
+
+
+    def mouseClick(self, evnt):
+
+        pass
 
 
     def clearPlotArea(self):
@@ -204,37 +251,67 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         self.dataPlotRange.addItem(self.lr)  # ignoreBounds=True
         self.lr.setRegion([0.4,0.6])
         viewBox = self.dataPlot.plotItem.vb  # reference to viewbox of the plotitem
-        self.lr.sigRegionChanged.connect(self.updatePlot)
-        viewBox.sigXRangeChanged.connect(self.updateRegion)
+        #self.lr.sigRegionChanged.connect(self.updatePlot)
+        #viewBox.sigXRangeChanged.connect(self.updateRegion)
 
     def addDataPlot(self):
-
+        plotname = 'plot' + str(len(self.lPlotWindows) + 1)
         axis = self.TimeAxisItem(orientation='bottom')
         vb = pg.ViewBox()
+        newdataPlot = pg.PlotWidget(self, viewBox=vb, axisItems={'bottom': axis}, name = plotname)
+        self.dataPlotLayout.addWidget(newdataPlot)
+        self.configPlotArea(newdataPlot)
 
-        self.dataPlot_2 = pg.PlotWidget(self, viewBox=vb, axisItems={'bottom': axis}, name = 'plot2')
-        self.dataPlot_2
-        self.dataPlotLayout.addWidget(self.dataPlot_2)
-        self.configPlotArea(self.dataPlot_2)
-        #self.lPlotWindows.append(self.dataPlot_2.name)
-        self.dataPlot_2.plotItem.showGrid(True, True, 0.5)
+        #vb.enableAutoRange()
+
+        newdataPlot.plotItem.showGrid(True, True, 0.5)
+
+        vb.scaleBy(y=None)
+
 
         # link x axis to view box of the first data plot
-        viewBox = self.dataPlot.plotItem.vb  # reference to viewbox of the plotitem
+        viewBox = self.dataPlot.plotItem.vb  # reference to viewbox of the plot 1
         axis.linkToView(viewBox)
+        #axis.linkToView(vb)
+
+        # Link plot 1 X axia to the view box
+        lastplotItem = self.dataPlotLayout.itemAt(self.dataPlotLayout.count()-2).widget()
+        lastplotItem.getViewBox().setXLink(newdataPlot)
 
 
+        self.lPlotWindows.append( plotname )
 
-    def plotData(self, selectedItems):
+        #viewBox.sigResized.connect(self.updatePlots())
+
+        newAction = self.treeWidget.treeContextMenu.addAction(u'Plot in ' + plotname)
+        newAction.triggered.connect(
+            lambda: self.plotData(self.treeWidget.selectedItems(), plotname))
+
+    def removeDataPlot(self):
+        pass
+
+
+    def plotData(self, selectedItems, plotname):
         '''selectedItems: items selected in tree view
            dfData: data frame of the selected data
         '''
 
-        #dfData = self.winImpData.dfData
+        #P = self.dataPlotLayout.tr(plotname)
 
-        plotItem = self.dataPlot.plotItem
-        #viewbox = pg.ViewBox()
-        plotItem.getAxis('bottom').setPen(pg.mkPen(color='#000000', width=1))
+        for i in range(self.dataPlotLayout.count()):
+            plotItem = self.dataPlotLayout.itemAt(i).widget()
+            if plotname == 'plot'+ str(i+1):
+                break
+
+
+        #plotItem = self.dataPlot.plotItem
+
+
+
+        viewbox = pg.ViewBox()
+        plotItem.scene().addItem(viewbox)
+
+        #plotItem.getAxis('bottom').setPen(pg.mkPen(color='#000000', width=1))
         i = 0
         for iItem in selectedItems:
             if iItem.parent():     # not the root item
@@ -256,7 +333,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                 # convert the time in string to date time object
                 iTime = [self.sTimeToDateTime(j) for j in sTime]
 
-                plotItem.hideAxis("bottom")
+                #plotItem.hideAxis("bottom")
 
                 i += 1  # for color index use
 
@@ -266,10 +343,12 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                 plotItem.addItem(plotcurve)
 
                 if not self.bPlotted:
+                    #viewbox.setXLink(plotcurve)
+
                     self.dataInRange_x = iTime
                     self.dataInRange_y = data_2_plot
 
-                    self.rgnXmin = int(iTime[0].timestamp())
+                    self.rgnXmin = int(iTime[0].timestamp())   # for use of region widget, the convert factor for x axis
                     self.rgnXmax = int(iTime[-1].timestamp())
                     self.rgnXfactor = (self.rgnXmax-self.rgnXmin) / len(iTime)
 
@@ -278,11 +357,16 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                     [x1, x2] = self.lr.getRegion()
                     x1 *= len(iTime)
                     x2 *= len(iTime)
-                    xmin = self.rgnXmin + x1 * self.rgnXfactor
-                    xmax = self.rgnXmin + x2 * self.rgnXfactor
+                    xmin = int(self.rgnXmin + x1 * self.rgnXfactor)
+                    xmax = int(self.rgnXmin + x2 * self.rgnXfactor)
                     self.dataPlot.setXRange(self.rgnXmin, self.rgnXmax)
                     #self.dataPlotRange.setZValue(1)
-                    self.lr.setRegion([x1, x2])
+                    self.lr.setRegion([xmin, xmax])
+
+                    #self.lr.sigRegionChanged.connect(self.updatePlot)
+                    #self.dataPlot.plotItem.vb.sigXRangeChanged.connect(self.updateRegion)
+
+
 
 
 
@@ -290,7 +374,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                 self.lPlottedItems.append({'filename': filename, 'Column': data_head})
                 self.listWidget.addItem(data_head + ' || ' + filename)
 
-                self.updatePlot()
+                self.updatePlots()
 
 
 
@@ -340,17 +424,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                 self.vLine.setPos(mousePoint.x())
                 self.hLine.setPos(mousePoint.y())
 
-    def regionUpdate(self):
-        pass
-        #minX, maxX = self.region.getRegion()
-        #self.dataPlot.setXRange(minX, maxX, padding=0)
 
-    def updateRegion(self, window, viewRange):
-        # window: viewbox
-        # viewrange[0]: x axis   viewRange[1]: y axis
-        pass
-        #rgn = viewRange[0]
-        #self.region.setRegion(rgn)
 
     def openFile(self):
 
@@ -388,42 +462,29 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
     class TimeAxisItem(pg.AxisItem): #### class TimeAxisItem is used for overloading x axis as time
         def tickStrings(self, values, scale, spacing):
-            # strns = []
-            # rng = max(values) - min(values)
-            # # if rng < 120:
-            # #    return pg.AxisItem.tickStrings(self, values, scale, spacing)
-            # if rng < 3600 * 24:
-            #     string = '%H:%M:%S'
-            #     label1 = '%b %d -'
-            #     label2 = ' %b %d, %Y'
-            # elif rng >= 3600 * 24 and rng < 3600 * 24 * 30:
-            #     string = '%d'
-            #     label1 = '%b - '
-            #     label2 = '%b, %Y'
-            # elif rng >= 3600 * 24 * 30 and rng < 3600 * 24 * 30 * 24:
-            #     string = '%b'
-            #     label1 = '%Y -'
-            #     label2 = ' %Y'
-            # elif rng >= 3600 * 24 * 30 * 24:
-            #     string = '%Y'
-            #     label1 = ''
-            #     label2 = ''
+            strns = []
+            #rng = max(values) - min(values)    # values are timestamp of date
+            #946656000 = datetime.strptime('2000', '%Y').timestamp() ,  handel dates after 2000 only
+            # if min(values) < 946656000:  # Windows can't handle dates before 1970,
+            #     # 1514764800.0 = datetime.datetime.strptime('2018-1-1 8:00:0', '%Y-%m-%d %H:%M:%S').timestamp()
+            #     # 1514766600.0 = datetime.datetime.strptime('2018-1-1 8:30:0', '%Y-%m-%d %H:%M:%S').timestamp()
+            #     #defaultValues = range(1514736000.0, 1514768400.0, 720)
             #
-            # for x in values:
-            #     try:
-            #         strns.append(time.strftime(string, time.localtime(x)))
-            #     except ValueError:  ## Windows can't handle dates before 1970
-            #         strns.append('')
-            # try:
-            #     label = time.strftime(label1, time.localtime(min(values))) + time.strftime(label2,
-            #                                                                                time.localtime(max(values)))
-            # except ValueError:
-            #     label = ''
-            #     #self.setLabel(text=label)
-            # return strns
+            #     return pg.AxisItem.tickStrings(self, values, scale, spacing)
+
+            for x in values:
+                try:
+                    if x < 946656000: x += 946656000     ## handle time starting from 1/1/2000
+                    strns.append(datetime.fromtimestamp(x).strftime('%H:%M:%S'))
+                except ValueError:  ## Windows can't handle dates before 1970
+                    strns.append('')
+
+            return strns
 
             # show hour:minute:second on the x axis
-            return [datetime.fromtimestamp(value).strftime('%H:%M:%S') for value in values]
+            #return [datetime.fromtimestamp(value).strftime('%H:%M:%S') for value in values]
+                # 946656000 = datetime.strptime('2000', '%Y').timestamp()
+
 
     def sTimeToDateTime(self, inTime):  # convert time from string to datetime object
         # inTime: '13:43:02:578' string type
