@@ -70,30 +70,32 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
     def initUI(self):
 
-
-
-
         # 添加打开菜单
-        selFileAction = QAction(QIcon('open.png'), '&Open', self)
+        selFileAction = QAction('&Open', self)  # QAction(QIcon('open.png'), '&Open', self)
         selFileAction.setShortcut('Ctrl+O')
         selFileAction.setStatusTip('Open new File')
         selFileAction.triggered.connect(self.openFile)     # open data file
-        selFileAction.setIcon(QIcon('import.ico'))
+        #selFileAction.setIcon(QIcon('import.ico'))
 
-        exitAction = QtGui.QAction(QIcon('exit.png'), '&Exit', self)
+        exitAction = QtGui.QAction('&Exit', self)    #QtGui.QAction(QIcon('exit.png'), '&Exit', self)
         exitAction.setShortcut('Ctrl+Q')
         exitAction.setStatusTip('Exit the application')
         #exitAction.triggered.connect(QtGui.qApp.quit)
         exitAction.triggered.connect(self.exitAPP)     # exit the application
 
-        clearAction = QtGui.QAction(QIcon('Clear.png'), 'Clear', self)
+        clearAction = QtGui.QAction('Clear', self)   # QtGui.QAction(QIcon('Clear.png'), 'Clear', self)
         clearAction.triggered.connect(self.clearPlotArea)
 
-        addPlotAction = QtGui.QAction(QIcon('Addplot.png'), 'Add a Plot', self)
-        addPlotAction.triggered.connect(self.addDataPlot)
+        addPlotAction = QtGui.QAction( 'Add a Plot', self)  #QtGui.QAction(QIcon('Addplot.png'), 'Add a Plot', self)
+        addPlotAction.triggered.connect(self.addDataPlotWin)
 
-        removePlotAction = QtGui.QAction(QIcon('Addplot.png'), 'Remove a Plot', self)
-        removePlotAction.triggered.connect(self.removeDataPlot)
+        removePlotAction = QtGui.QAction('Remove a Plot', self) # QtGui.QAction(QIcon('Addplot.png'), 'Remove a Plot', self)
+        removePlotAction.triggered.connect(self.removeDataPlotWin)
+
+        viewAllAction = QtGui.QAction("View All", self)
+        viewAllAction.triggered.connect(self.autoRangeAllWins)
+
+
 
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')         # add menu File
@@ -108,6 +110,8 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         toolBar = self.addToolBar("Open")
         toolBar.addAction(selFileAction)             # link tool bar to openfile action
 
+        toolBar.addAction(viewAllAction)
+
         # toolBar = self.addToolBar('Exit')
         # toolBar.addAction(selExitAction)  # link menu bar to openfile action
 
@@ -117,64 +121,63 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         self.dataPlot.setAutoVisible(y=True)
         #self.dataPlot.plotItem.hideAxis("bottom")
         #self.dataPlot.plotItem.hideAxis("left")
-        self.dataPlotRange.setMouseEnabled(x=False, y=False)  # dataPlotRange 不能移动
-        self.dataPlotRange.plotItem.hideAxis('left')
+        #self.dataPlotRange.setMouseEnabled(x=False, y=False)  # dataPlotRange 不能移动
+        #self.dataPlotRange.plotItem.hideAxis('left')
         #self.dataPlotRange.plotItem.hideAxis('bottom')
 
         # 设置treeWidget的相关  class: QTreeWidget
         self.treeWidget.setContextMenuPolicy(Qt.CustomContextMenu)
         self.treeWidget.customContextMenuRequested.connect(self.showContextMenu)
         self.treeWidget.treeContextMenu = QMenu(self)
-        self.actionA = self.treeWidget.treeContextMenu.addAction(u'Plot in plot1')
-
-
+        self.actionA = self.treeWidget.treeContextMenu.addAction(u'Plot')
         self.actionA.triggered.connect(
-            #lambda: self.chartPlot(self.treeWidget.currentItem(), self.treeWidget.selectedItems()))
-            lambda: self.plotData(self.treeWidget.selectedItems(), 'plot1'))
+            lambda: self.plotData(self.treeWidget.selectedItems()))
         self.treeWidget.setColumnCount(4)
         self.treeWidget.setHeaderLabels(['#', 'Parameter', 'Parameter Name', 'Unit'])
         self.treeWidget.setColumnWidth(0, 10)
         self.treeWidget.setColumnWidth(1, 50)
         self.treeWidget.setColumnWidth(2, 100)
 
+
+        # set up context menu of list widget
+        self.listWidget.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.listWidget.customContextMenuRequested.connect(self.showListContextMenu)
+        self.listWidget.listContextMenu = QMenu(self)
+        self.actionB = self.listWidget.listContextMenu.addAction(u'Remove')
+        self.actionB.triggered.connect(
+            lambda: self.removeItemInPlot(self.listWidget.selectedItems()))
+
+
         #################### get the test data from the import window
         self.winImpData = clsImportData(self.dataparam, self.lTestDATA)     # instance of the ImportData window
 
-        # layout
-        self.L = pg.GraphicsLayout()
-        self.dataPlot.setCentralWidget(self.L)
+        # # layout
+        # self.L = pg.GraphicsLayout()
+        # self.dataPlot.setCentralWidget(self.L)
 
-        # x axis for time
-        xAxis = self.TimeAxisItem("bottom")
-
-        #self.L.addItem(xAxis, row=2, col=6, rowspan=1, colspan=1)
-
+        # # x axis for time
+        # xAxis = self.TimeAxisItem("bottom")
+        xAxis = self.dataPlot.plotItem.axes['bottom']['item']
         # plotitem and viewbox
         ## at least one plotitem is used whioch holds its own viewbox and left axis
         viewBox = self.dataPlot.plotItem.vb  # reference to viewbox of the plotitem
 
-        # link x axis to view box
+
+        # # link x axis to view box
         xAxis.linkToView(viewBox)
 
         #  col 1 to 5 kept for y axis
-        self.L.addItem(self.dataPlot.plotItem, row=1, col=6, rowspan=1, colspan=1)  # add plotitem to layout
-
-        # # set the linear region
-        self.lr = pg.LinearRegionItem(values=(0, 1))
-        self.lr.setZValue(-10)
-        self.dataPlotRange.addItem(self.lr)  # ignoreBounds=True
-        self.lr.setRegion([0.4,0.6])
-        #
-        # self.lr.sigRegionChanged.connect(self.updatePlot)
-        # viewBox.sigXRangeChanged.connect(self.updateRegion)
+        #self.L.addItem(self.dataPlot.plotItem, row=1, col=6, rowspan=1, colspan=1)  # add plotitem to layout
 
         self.dataPlot.plotItem.scene().sigMouseMoved.connect(self.mouseMove)
-        #self.dataPlot.plotItem.scene().sigMouseClicked.connect(self.mouseClick)
+        self.dataPlot.plotItem.scene().sigMouseClicked.connect(self.mouseClick)
         # self.region.setRegion()
 
         self.configPlotArea(self.dataPlot)
 
-
+        # set current selection plot window background
+        self.currSelctPlotWgt = self.dataPlot
+        self.currSelctPlotWgt.setBackground(0.95)
 
 
 
@@ -188,12 +191,14 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
 
 
-
-
-
     def showContextMenu(self):
         self.treeWidget.treeContextMenu.move(QCursor.pos())
         self.treeWidget.treeContextMenu.show()
+
+    def showListContextMenu(self):
+        self.listWidget.listContextMenu.move(QCursor.pos())
+        self.listWidget.listContextMenu.show()
+
 
     def updateViews(self):
         pass
@@ -220,27 +225,35 @@ class clsDataView(QMainWindow, Ui_MainWindow):
             #self.lr.setRegion([x for x in self.dataPlot.getViewBox().viewRange()[0]])
             pass
 
-    def updatePlots(self):
+    def updatePlotWins(self):
         # for i in range(0, len(self.chartVBs)):
         #     self.chartVBs[i].setGeometry(self.chartPlotItems[0].vb.sceneBoundingRect())
         #     self.chartVBs[i].linkedViewChanged(self.chartPlotItems[0].vb, self.chartVBs[i].XAxis)
+        self.autoRangeAllWins()
+
+    def autoRangeAllWins(self):
         for i in range(self.dataPlotLayout.count()):
             plotItem = self.dataPlotLayout.itemAt(i).widget()
 
-            #plotItem.getViewBox().setGeometry(plotItem.getViewBox().sceneBoundingRect())
-            #plotItem.getViewBox().linkedViewChanged(plotItem.getViewBox(), plotItem.getViewBox().XAxis)
-            pass
-
-
+            plotItem.getViewBox().autoRange()
 
     def mouseClick(self, evnt):
-
-        pass
-
+        if self.currSelctPlotWgt:
+            self.currSelctPlotWgt.setBackground('default')
+            self.currSelctPlotWgt = evnt.currentItem._viewWidget()    # get the current selected widget
+            self.currSelctPlotWgt.setBackground(0.95)
 
     def clearPlotArea(self):
-        self.dataPlot.plotItem.clear()
-        self.dataPlotRange.plotItem.clear()
+        #self.dataPlot.plotItem.clear()
+        for item in self.dataPlot.items():
+            self.dataPlot.removeItem(item)
+
+        lstitems = self.listWidget.findItems('plot1', Qt.MatchStartsWith)
+        if len(lstitems) > 0:
+            for iitem in lstitems:
+                self.listWidget.takeItem(self.listWidget.row(iitem))
+
+        #self.dataPlotRange.plotItem.clear()
         self.bPlotted = False
         self.configPlotArea(self.dataPlot)
 
@@ -248,13 +261,13 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         # set the linear region
         self.lr = pg.LinearRegionItem(values=(0, 1))
         self.lr.setZValue(-10)
-        self.dataPlotRange.addItem(self.lr)  # ignoreBounds=True
+        #self.dataPlotRange.addItem(self.lr)  # ignoreBounds=True
         self.lr.setRegion([0.4,0.6])
         viewBox = self.dataPlot.plotItem.vb  # reference to viewbox of the plotitem
         #self.lr.sigRegionChanged.connect(self.updatePlot)
         #viewBox.sigXRangeChanged.connect(self.updateRegion)
 
-    def addDataPlot(self):
+    def addDataPlotWin(self):
         plotname = 'plot' + str(len(self.lPlotWindows) + 1)
         axis = self.TimeAxisItem(orientation='bottom')
         vb = pg.ViewBox()
@@ -262,11 +275,13 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         self.dataPlotLayout.addWidget(newdataPlot)
         self.configPlotArea(newdataPlot)
 
-        #vb.enableAutoRange()
+        newdataPlot.plotItem.scene().sigMouseClicked.connect(self.mouseClick)
 
         newdataPlot.plotItem.showGrid(True, True, 0.5)
 
         vb.scaleBy(y=None)
+
+
 
 
         # link x axis to view box of the first data plot
@@ -277,39 +292,61 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         # Link plot 1 X axia to the view box
         lastplotItem = self.dataPlotLayout.itemAt(self.dataPlotLayout.count()-2).widget()
         lastplotItem.getViewBox().setXLink(newdataPlot)
+        lastplotItem.getViewBox().autoRange()
+        # AxisofLastplotItem = lastplotItem.plotItem.axes['bottom']['item']  # get the x axis of the plot window
+        # AxisofLastplotItem.setStyle(showValues=False)                       # hide the value of x axis
 
-
-        self.lPlotWindows.append( plotname )
+        self.lPlotWindows.append(plotname)
 
         #viewBox.sigResized.connect(self.updatePlots())
 
-        newAction = self.treeWidget.treeContextMenu.addAction(u'Plot in ' + plotname)
-        newAction.triggered.connect(
-            lambda: self.plotData(self.treeWidget.selectedItems(), plotname))
+        # newAction = self.treeWidget.treeContextMenu.addAction(u'Plot in ' + plotname)
+        # newAction.triggered.connect(
+        #     lambda: self.plotData(self.treeWidget.selectedItems(), plotname))
 
-    def removeDataPlot(self):
-        pass
+    def removeDataPlotWin(self):
+        curreSelctPlotWgtName = self.currSelctPlotWgt.getViewBox().name
+        if curreSelctPlotWgtName != 'plot1' and curreSelctPlotWgtName in self.lPlotWindows:  # can't delete plot1
+            choice = QtGui.QMessageBox.question(self, 'Plot', "Remove the selected plot window?",
+                                                QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
+            if choice == QtGui.QMessageBox.Yes:
+
+                for item in self.currSelctPlotWgt.items():   # delete the items of the plot
+                    self.currSelctPlotWgt.removeItem(item)
+
+                lstitems = self.listWidget.findItems(curreSelctPlotWgtName, Qt.MatchStartsWith)  # delete the list in the list widget
+                if len(lstitems) > 0:
+                    for iitem in lstitems:
+                        self.listWidget.takeItem(self.listWidget.row(iitem))
 
 
-    def plotData(self, selectedItems, plotname):
+
+                self.dataPlotLayout.removeWidget(self.currSelctPlotWgt)
+                self.currSelctPlotWgt.deleteLater()    #setHidden(True)     # hide the selected widget, should be deleted, to be updated with delect command
+                self.currSelctPlotWgt = None
+                self.lPlotWindows.remove(curreSelctPlotWgtName)    # remove the plot name from list of plot windows
+
+                self.currSelctPlotWgt = self.dataPlot   # set the current selection to plot1
+                self.currSelctPlotWgt.setBackground(0.95)
+
+    def plotData(self, selectedItems):
         '''selectedItems: items selected in tree view
            dfData: data frame of the selected data
         '''
 
-        #P = self.dataPlotLayout.tr(plotname)
-
-        for i in range(self.dataPlotLayout.count()):
-            plotItem = self.dataPlotLayout.itemAt(i).widget()
-            if plotname == 'plot'+ str(i+1):
-                break
+        # for i in range(self.dataPlotLayout.count()):     # plot name = plot1 or plot2
+        #     plotItem = self.dataPlotLayout.itemAt(i).widget()
+        #     if plotname == 'plot'+ str(i+1):
+        #         break
 
 
         #plotItem = self.dataPlot.plotItem
 
+        # viewbox = pg.ViewBox()
+        # plotItem.scene().addItem(viewbox)
 
-
-        viewbox = pg.ViewBox()
-        plotItem.scene().addItem(viewbox)
+        plotItem = self.currSelctPlotWgt
+        viewbox = self.currSelctPlotWgt.getViewBox()
 
         #plotItem.getAxis('bottom').setPen(pg.mkPen(color='#000000', width=1))
         i = 0
@@ -339,62 +376,36 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
                 # example
                 # pw.plot(x=[x.timestamp() for x in iTime ], y= list(df['BCVIIN']), pen = 'r')
-                plotcurve = pg.PlotCurveItem(x=[x.timestamp() for x in iTime], y= data_2_plot, pen=self.colorDex[i%5])
+                plotcurve = pg.PlotCurveItem(x=[x.timestamp() for x in iTime], y= data_2_plot, name = data_head, pen=self.colorDex[i%5])
                 plotItem.addItem(plotcurve)
 
                 if not self.bPlotted:
-                    #viewbox.setXLink(plotcurve)
+                    self.bPlotted = True
+                plotWgtName = self.currSelctPlotWgt.getViewBox().name
+                self.lPlottedItems.append({'Plot': plotWgtName, 'filename': filename, 'Column': data_head })
+                self.listWidget.addItem(plotWgtName + '||' + data_head + '||' + filename )
 
-                    self.dataInRange_x = iTime
-                    self.dataInRange_y = data_2_plot
-
-                    self.rgnXmin = int(iTime[0].timestamp())   # for use of region widget, the convert factor for x axis
-                    self.rgnXmax = int(iTime[-1].timestamp())
-                    self.rgnXfactor = (self.rgnXmax-self.rgnXmin) / len(iTime)
-
-                    self.dataPlotRange.plot(y=self.dataInRange_y)
-
-                    [x1, x2] = self.lr.getRegion()
-                    x1 *= len(iTime)
-                    x2 *= len(iTime)
-                    xmin = int(self.rgnXmin + x1 * self.rgnXfactor)
-                    xmax = int(self.rgnXmin + x2 * self.rgnXfactor)
-                    self.dataPlot.setXRange(self.rgnXmin, self.rgnXmax)
-                    #self.dataPlotRange.setZValue(1)
-                    self.lr.setRegion([xmin, xmax])
-
-                    #self.lr.sigRegionChanged.connect(self.updatePlot)
-                    #self.dataPlot.plotItem.vb.sigXRangeChanged.connect(self.updateRegion)
+                self.updatePlotWins()
 
 
+    def removeItemInPlot(self, selectedItem):
+        if selectedItem[0]:
+            [plotname,itemname,filename] = selectedItem[0].text().split('||')  #selectedItems()[0].text().split('||')
 
+            for i in range(self.dataPlotLayout.count()):     # plot name = plot1 or plot2
+                plotWin = self.dataPlotLayout.itemAt(i).widget()
+                if plotname == plotWin.getViewBox().name:    # get the plot item
+                    break
 
+            for j in plotWin.plotItem.curves:    # get the curve item
+                curvename = j.name()
+                if curvename == itemname:
+                    break
+            plotWin.removeItem(j)               # delete the curve from the plot
 
-                self.bPlotted = True
-                self.lPlottedItems.append({'filename': filename, 'Column': data_head})
-                self.listWidget.addItem(data_head + ' || ' + filename)
+            self.listWidget.takeItem( self.listWidget.row(selectedItem[0]))    # remove the item from the list
 
-                self.updatePlots()
-
-
-
-
-
-
-           # # self.chartPlotItems[0].layout.clear()
-            #
-            # self.chartPlotItems[0].layout.addItem(ax_temp, 2, j)
-            # self.chartPlotItems[0].scene().addItem(temp_vb)
-            # ax_temp.linkToView(temp_vb)
-            # temp_vb.setXLink(self.chartPlotItems[0])
-            # ax_temp.setLabel('axial ' + str(j), color=self.colorDex[i])
-
-
-    #     #self.updateViews()
-
-    #     pen1 = pg.mkPen(color='b')
-    #     pen2 = pg.mkPen(color='r')
-    #
+            self.updatePlotWins()
 
 
     def mouseMove(self, evt):
