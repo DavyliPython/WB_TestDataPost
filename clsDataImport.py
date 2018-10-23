@@ -1,11 +1,8 @@
-from PyQt5.QtWidgets import QMainWindow, QFileDialog, QTreeWidget, QTreeWidgetItem, QWidget, QTableWidgetItem
+from PyQt5.QtWidgets import QFileDialog, QTableWidgetItem
 from PyQt5.QtGui import QIcon
-from PyQt5.Qt import QMenu, Qt, QAction, QCursor, QApplication, QDialog,QMessageBox, QTime
+from PyQt5.Qt import QDialog,QMessageBox
 import PyQt5.QtGui
 
-
-
-import sys
 import os
 import pandas as pd
 from datetime import datetime
@@ -61,10 +58,6 @@ class clsImportData(QDialog, Ui_winImportData):
         self.iStartRow = self.firstRow   # the first row in the selection
         self.iEndRow = self.lastRow      # the last row in the selection
 
-
-        self.parColImported = []  # parameter column to be imported to main window for review
-        self.dfImptedData = pd.DataFrame()   # the dataframe to keep the imported data set
-
         self.btnImport.setEnabled(False)
         self.btnExport.setEnabled(False)
 
@@ -96,14 +89,6 @@ class clsImportData(QDialog, Ui_winImportData):
         self.qleToRow.setText(str(self.lastRow))
         self.btnImport.setEnabled(True)
         self.progressBar.setValue(0)
-
-    def setStartTime(self):
-        pass
-        #self.teFromTime.setText(datetime.strftime(self.sStartTime)str(self.sStartTime))
-
-    def setEndTime(self):
-        pass
-        #self.teToTime.setText(self.sEndTime)
 
     def setStartRow(self):
         self.qleFromRow.setText(str(self.firstRow))
@@ -142,12 +127,6 @@ class clsImportData(QDialog, Ui_winImportData):
             self.qleToRow.setText(str(self.iEndRow))
 
 
-
-    # def editedTimeFrom(self):
-    #      if self.sStartTime < self.startTime or self.sStartTime > self.endTime:
-    #         #self.teFromTime.setTime(datetime.strptime('2018 ' + self.startTime, '%Y %H:%M:%S').time())
-    #         self.qleFromRow.setText(self.iStartRow)
-
     def changeTimeto(self):
         self.sEndTime = self.teToTime.text()  # the new start time to be plotted
         if self.sEndTime < self.endTime and self.sEndTime > self.startTime:
@@ -169,19 +148,28 @@ class clsImportData(QDialog, Ui_winImportData):
             if self.sDataFilePath != fname[0]:   # the file was not selected before
                 self.setDataFilePath(fname[0])
 
-                sizeoffile = os.path.getsize(self.sDataFilePath)
-                if sizeoffile <= 0:
-                    QMessageBox.critical(self, "Error", "Data rate should not be Zero")
+                try:
+                    sizeoffile = os.path.getsize(self.sDataFilePath)
+                    if sizeoffile <= 0:
+                        QMessageBox.critical(self, "Error", "Data rate should not be Zero" )
+                        return
+                except Exception as e:
+                    QMessageBox.critical(self, "Error", "Check the file's existence.\n" + e.__str__())
                     return
 
-                dfData = pd.read_csv(self.sDataFilePath, delim_whitespace=True, nrows=200,
+                try:
+                    dfData = pd.read_csv(self.sDataFilePath, delim_whitespace=True, nrows=200,
                                      error_bad_lines=False)  # read 200 rows only
-
-                self.iDataRate = self.estDataRate(list(dfData['TIME']))
+                    dfData['TIME']
+                    self.iDataRate = self.estDataRate(list(dfData['TIME']))
+                except Exception as e:
+                    QMessageBox.critical(self, "Error", "Check the data format.\n" + e.__str__())
+                    return
 
                 if self.iDataRate <= 0:
                     QMessageBox.critical(self, "Error", "Data rate should not be Zero")
                     return
+
 
                 self.setDataRate()
 
@@ -193,7 +181,7 @@ class clsImportData(QDialog, Ui_winImportData):
 
                 self.startTime = dfData['TIME'].iloc[0][:8]
                 self.sStartTime = self.startTime   # default selected time is same as the data start time
-                #self.setStartTime()
+
                 self.teDataFromTime.setTime(datetime.strptime('2018 ' + self.startTime, '%Y %H:%M:%S').time())
                 self.teFromTime.setTime(datetime.strptime('2018 ' + self.startTime, '%Y %H:%M:%S').time())
 
@@ -201,7 +189,7 @@ class clsImportData(QDialog, Ui_winImportData):
 
                 self.iStartRow = self.firstRow
                 self.qleFromRow.setText(str(self.firstRow))
-                #self.setStartRow()
+
 
                 self.lastRow = self.estRowNum(self.sDataFilePath)
                 self.iEndRow = self.lastRow
@@ -213,24 +201,9 @@ class clsImportData(QDialog, Ui_winImportData):
                 self.sEndTime = self.endTime
                 self.teDataToTime.setTime(datetime.strptime('2018 ' + self.endTime, '%Y %H:%M:%S').time())
                 self.teToTime.setTime(datetime.strptime('2018 ' + self.endTime, '%Y %H:%M:%S').time())
-                #self.setEndTime()
-
-
 
                 # do the time consuming work of scan the data file
                 self.populatePreviewTable()
-
-
-
-    def getDataFileSize(self,dfPath):
-        '''
-            input:  string, path to the file
-            return: int, file size in KB
-        '''
-        sizeoffile = os.path.getsize(dfPath) / 1024  # file size in KB
-
-        # print (sizeoffile)
-        return round(sizeoffile, 1)  # keep on digit of decimal
 
 
     def estTimeByDuration(self, starttime, duration):
@@ -413,6 +386,7 @@ class clsImportData(QDialog, Ui_winImportData):
                 self.progressBar.setValue(round(rows_readover / self.lastRow * 100))
 
             except Exception as e:
+                QMessageBox.Critical(self, "Error", e.__str__())
                 pass
 
             extract_row_range = range(0, chunkSize - 1, self.iDataRate // self.newRate)    # get the rows of newrate per the rows of data rate
@@ -475,10 +449,10 @@ class clsImportData(QDialog, Ui_winImportData):
             strTestData.data.to_csv(file_out,sep = "\t", index = False)
 
         except Exception as e:
-            QMessageBox.Critical(self, "Error","Error in writing data to file" + e.__str__()  )
+            QMessageBox.Critical(self, "Error","Error in writing data to file.\n" + e.__str__()  )
 
         self.progressBar.setValue(100)
-        QMessageBox.information(self, "Export", "Writed data to file successfully.")
+        QMessageBox.information(self, "Export", "Wrote data to file successfully.")
 
     def getPathOfExport(self):
         fname = QFileDialog.getSaveFileName(self,'Save as:',

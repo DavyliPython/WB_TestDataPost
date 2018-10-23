@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem
 from PyQt5.QtGui import QIcon
-from PyQt5.Qt import QMenu, Qt, QAction, QCursor
-from PyQt5 import QtGui, QtCore
+from PyQt5.Qt import QMenu, Qt, QAction, QCursor, QMessageBox
+from PyQt5 import QtGui
 
 import pyqtgraph as pg
 import pandas as pd
@@ -9,7 +9,7 @@ import pandas as pd
 import sys
 import os
 from datetime import datetime
-import time
+
 
 from mainUI import Ui_MainWindow
 from clsDataImport import clsImportData
@@ -40,17 +40,12 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                                     #  [(filename, column name, dataframe of data)
         self.parColPlotted = []           # parameter column in plotting
 
-        # for linear region use
-        self.rgnXmin = 0
-        self.rgnXmax = 1
-        self.rgnXfactor = 1
-
 
             # r'C:\onedrive\OneDrive - Honeywell\VPD\parameters code.csv'
         self.dataparam = dataParam()   # data parameter definition
         #self.dataparam = dateParam()
         paramlist = self.dataparam.getParamName()
-        self.dataparam.getParamInfo('ABCVIINR', 'paramDesc')
+        #self.dataparam.getParamInfo('ABCVIINR', 'paramDesc')
         #self.dfData = pd.DataFrame()    # pandas dataframes to be plot
 
         # pyqtGraph 相关设置，必须要在self.setupUi之前
@@ -117,6 +112,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
         # 设置dataPlot  class: PlotWidget
         self.dataPlot.plotItem.showGrid(True, True, 0.5)
+        #self.dataPlot.plotItem.addLegend()
 
         self.dataPlot.setAutoVisible(y=True)
         #self.dataPlot.plotItem.hideAxis("bottom")
@@ -207,23 +203,6 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         #viewbox.setGeometry(viewbox.sceneBoundingRect())
         #viewbox.linkedViewChanged(viewbox, self.chartVBs[i].XAxis)
 
-    def updatePlot(self):
-        #self.dataPlot.setXRange(*self.lr.getRegion(), padding=0)
-        if self.bPlotted:
-            [x1, x2] = self.lr.getRegion()
-            # try:
-            #     xmin = self.rgnXmin + x1 * self.rgnXfactor
-            #     xmax = self.rgnXmin + x2 * self.rgnXfactor
-            # except Exception as e:
-            #     xmin = x1
-            #     xmax = x2
-            #self.dataPlot.setXRange(x1, x2 )
-            # (self.rgnXmin + self.rgnXfactor * len(iTime))(self.rgnXmin + self.rgnXfactor * len(iTime))
-
-    def updateRegion(self):
-        if self.bPlotted:
-            #self.lr.setRegion([x for x in self.dataPlot.getViewBox().viewRange()[0]])
-            pass
 
     def updatePlotWins(self):
         # for i in range(0, len(self.chartVBs)):
@@ -240,8 +219,13 @@ class clsDataView(QMainWindow, Ui_MainWindow):
     def mouseClick(self, evnt):
         if self.currSelctPlotWgt:
             self.currSelctPlotWgt.setBackground('default')
-            self.currSelctPlotWgt = evnt.currentItem._viewWidget()    # get the current selected widget
-            self.currSelctPlotWgt.setBackground(0.95)
+            if evnt.currentItem is not None:
+                try:
+                    self.currSelctPlotWgt = evnt.currentItem._viewWidget()    # get the current selected widget
+                    self.currSelctPlotWgt.setBackground(0.95)
+                except Exception as e:
+                    pass
+                    #QMessageBox.Critical(self, "Error", e.__str__())
 
     def clearPlotArea(self):
         #self.dataPlot.plotItem.clear()
@@ -253,19 +237,14 @@ class clsDataView(QMainWindow, Ui_MainWindow):
             for iitem in lstitems:
                 self.listWidget.takeItem(self.listWidget.row(iitem))
 
+        for item in self.currSelctPlotWgt.scene().items():
+            if isinstance(item, pg.graphicsItems.LegendItem.LegendItem):  #  remove items in the scene including the legend
+                self.currSelctPlotWgt.scene().removeItem(item)
+
         #self.dataPlotRange.plotItem.clear()
         self.bPlotted = False
         self.configPlotArea(self.dataPlot)
 
-        # re-setup the linear region of data plot range
-        # set the linear region
-        self.lr = pg.LinearRegionItem(values=(0, 1))
-        self.lr.setZValue(-10)
-        #self.dataPlotRange.addItem(self.lr)  # ignoreBounds=True
-        self.lr.setRegion([0.4,0.6])
-        viewBox = self.dataPlot.plotItem.vb  # reference to viewbox of the plotitem
-        #self.lr.sigRegionChanged.connect(self.updatePlot)
-        #viewBox.sigXRangeChanged.connect(self.updateRegion)
 
     def addDataPlotWin(self):
         plotname = 'plot' + str(len(self.lPlotWindows) + 1)
@@ -276,13 +255,11 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         self.configPlotArea(newdataPlot)
 
         newdataPlot.plotItem.scene().sigMouseClicked.connect(self.mouseClick)
+        newdataPlot.plotItem.scene().sigMouseMoved.connect(self.mouseMove)
 
         newdataPlot.plotItem.showGrid(True, True, 0.5)
 
         vb.scaleBy(y=None)
-
-
-
 
         # link x axis to view box of the first data plot
         viewBox = self.dataPlot.plotItem.vb  # reference to viewbox of the plot 1
@@ -298,11 +275,6 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
         self.lPlotWindows.append(plotname)
 
-        #viewBox.sigResized.connect(self.updatePlots())
-
-        # newAction = self.treeWidget.treeContextMenu.addAction(u'Plot in ' + plotname)
-        # newAction.triggered.connect(
-        #     lambda: self.plotData(self.treeWidget.selectedItems(), plotname))
 
     def removeDataPlotWin(self):
         curreSelctPlotWgtName = self.currSelctPlotWgt.getViewBox().name
@@ -319,6 +291,9 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                     for iitem in lstitems:
                         self.listWidget.takeItem(self.listWidget.row(iitem))
 
+                for item in self.currSelctPlotWgt.scene().items():  #  remove everything in the scene including the legend
+                    self.currSelctPlotWgt.scene().removeItem(item)
+
 
 
                 self.dataPlotLayout.removeWidget(self.currSelctPlotWgt)
@@ -334,12 +309,6 @@ class clsDataView(QMainWindow, Ui_MainWindow):
            dfData: data frame of the selected data
         '''
 
-        # for i in range(self.dataPlotLayout.count()):     # plot name = plot1 or plot2
-        #     plotItem = self.dataPlotLayout.itemAt(i).widget()
-        #     if plotname == 'plot'+ str(i+1):
-        #         break
-
-
         #plotItem = self.dataPlot.plotItem
 
         # viewbox = pg.ViewBox()
@@ -347,6 +316,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
         plotItem = self.currSelctPlotWgt
         viewbox = self.currSelctPlotWgt.getViewBox()
+        plotItem.addLegend()
 
         #plotItem.getAxis('bottom').setPen(pg.mkPen(color='#000000', width=1))
         i = 0
@@ -361,6 +331,8 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
 
                 data_head = iItem.text(1)           # get the column name of data for plotting
+                curve_name = data_head + "/" + iItem.text(2) + "/" + iItem.text(3)
+
                 # y axis
                 data_2_plot = list(dfData[data_head])
 
@@ -376,14 +348,17 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
                 # example
                 # pw.plot(x=[x.timestamp() for x in iTime ], y= list(df['BCVIIN']), pen = 'r')
-                plotcurve = pg.PlotCurveItem(x=[x.timestamp() for x in iTime], y= data_2_plot, name = data_head, pen=self.colorDex[i%5])
-                plotItem.addItem(plotcurve)
+                try:
+                    plotcurve = pg.PlotCurveItem(x=[x.timestamp() for x in iTime], y= data_2_plot, name = curve_name, pen=self.colorDex[i%5])
+                    plotItem.addItem(plotcurve)
+                except Exception as e:
+                    QMessageBox.Critical(self, "Error", "Error with data to plot.\n" + e.__str__())
 
                 if not self.bPlotted:
                     self.bPlotted = True
                 plotWgtName = self.currSelctPlotWgt.getViewBox().name
-                self.lPlottedItems.append({'Plot': plotWgtName, 'filename': filename, 'Column': data_head })
-                self.listWidget.addItem(plotWgtName + '||' + data_head + '||' + filename )
+                self.lPlottedItems.append({'Plot': plotWgtName, 'filename': filename, 'Column': curve_name })
+                self.listWidget.addItem(plotWgtName + '||' + curve_name + '||' + filename )
 
                 self.updatePlotWins()
 
@@ -400,12 +375,22 @@ class clsDataView(QMainWindow, Ui_MainWindow):
             for j in plotWin.plotItem.curves:    # get the curve item
                 curvename = j.name()
                 if curvename == itemname:
+                    curveFound = True
                     break
-            plotWin.removeItem(j)               # delete the curve from the plot
+            if curveFound:
+                plotWin.removeItem(j)               # delete the curve from the plot
+                #plotWin.scene().removeItem(plotWin.plotItem.legend)
+                for item in plotWin.scene().items():    # remove the legend
+                    if isinstance(item, pg.graphicsItems.LegendItem.LegendItem):      #isinstance(plotWin.scene().items()[6], pg.graphicsItems.LegendItem.LegendItem)
+                        if item.items[0][1].text == curvename:                      # get the legend of the curve
+                            plotWin.scene().removeItem(item)
+                            break
+                self.listWidget.takeItem( self.listWidget.row(selectedItem[0]))    # remove the item from the list
 
-            self.listWidget.takeItem( self.listWidget.row(selectedItem[0]))    # remove the item from the list
+                self.updatePlotWins()
 
-            self.updatePlotWins()
+
+
 
 
     def mouseMove(self, evt):
@@ -424,10 +409,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
                 timeIndex = datetime.fromtimestamp(x).strftime('%H:%M:%S')  # convert x coord from timestamp to time string
                 #print('if3')
-                if x >   startTime and x < endTime:
-                    # print('if4')
-                    # print(index)
-                    # print(mousePoint.x())
+                if x > startTime and x < endTime:
                     # print(self.dataSummary[self.item_Selected][index])
                     #self.label.setText("X = %0.1f; Y = %0.1f " %(mousePoint.x(), mousePoint.y())) #"<span style='font-size: 12pt'>x=%0.1f,   <span style='color: red'> Y1=%0.1f</span> " % (mousePoint.x(), float(dfData[index])))
                     self.label.setText("<span style='font-size: 12pt'>Time=%s,   <span style='color: red'> Y1=%0.1f</span> " % (timeIndex, mousePoint.y()))
@@ -438,10 +420,8 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
 
     def openFile(self):
-
-         self.winImpData.exec_()  # Run the imp data window in modal
-
-         self.treeUpdate()
+        self.winImpData.exec_()  # Run the imp data window in modal
+        self.treeUpdate()
 
     def exitAPP(self):
         choice = QtGui.QMessageBox.question(self, 'Exit', "Close the application?",
@@ -504,15 +484,21 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         # '2018 ' + startTime, '%Y %H:%M:%S'
         #itime = inTime[:8] + "." + inTime[10:12]   # convert 13:43:02:578 to 13:43:02.578
         # add date (2018-01-01)to the TIME for the sake of format of datetime class. could use real date of the data created
-
-        return datetime.strptime('2018 ' + inTime, '%Y %H:%M:%S:%f')  # convert the time from string to the datetime format
-
+        try:
+            outTime = datetime.strptime('2018 ' + inTime, '%Y %H:%M:%S:%f')  # convert the time from string to the datetime format
+        except Exception as e:
+            QMessageBox.Critical(self, "Error", "TIME format error.\n" + e.__str__())
+            outTime = datetime.now()
+        return outTime
 
 class dataParam:
     def __init__(self, paramFile = os.getcwd() + '\\parameters code.csv'):
-        self.paramFile = paramFile #r'C:\onedrive\OneDrive - Honeywell\VPD\parameters code.csv'
+        self.paramFile = paramFile #the path to the parameter file: r'C:\onedrive\OneDrive - Honeywell\VPD\parameters code.csv'
         self.columName = ['param', 'paramDesc', 'paramDescChs', 'unit', 'unitM', 'unitChs', 'rate']
-        self.paramDF = pd.read_csv(self.paramFile, names=self.columName, index_col=0, header=0)
+        try:
+            self.paramDF = pd.read_csv(self.paramFile, names=self.columName, index_col=0, header=0)
+        except Exception as e:
+            QMessageBox.Critical(self, "Error", "Error in reading the parameter file.\n" + e.__str__())
 
 
     def getParamName(self):
@@ -522,7 +508,7 @@ class dataParam:
         # paramName: parameter name
         # colName: column name - 'param', 'paramDesc', 'paramDescChs', 'unit', 'unitM', 'unitChs', 'rate'
         #x = paramDF.loc[paramName, columName]
-        # TODO add an error trap for non exisint param name, return ""
+        # for non exisint param name, return ""
         if paramName in list(self.paramDF.index):
             return self.paramDF.loc[paramName, colName]
         else:
