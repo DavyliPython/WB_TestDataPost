@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem
 from PyQt5.QtGui import QIcon
-from PyQt5.Qt import QMenu, Qt, QAction, QCursor, QMessageBox
+from PyQt5.Qt import QMenu, Qt, QAction, QCursor, QMessageBox, QLabel
 from PyQt5 import QtGui
 
 import pyqtgraph as pg
@@ -70,25 +70,30 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         selFileAction.setShortcut('Ctrl+O')
         selFileAction.setStatusTip('Open new File')
         selFileAction.triggered.connect(self.openFile)     # open data file
-        #selFileAction.setIcon(QIcon('import.ico'))
+        selFileAction.setIcon(QIcon('import.png'))
 
         exitAction = QtGui.QAction('&Exit', self)    #QtGui.QAction(QIcon('exit.png'), '&Exit', self)
         exitAction.setShortcut('Ctrl+Q')
         exitAction.setStatusTip('Exit the application')
         #exitAction.triggered.connect(QtGui.qApp.quit)
         exitAction.triggered.connect(self.exitAPP)     # exit the application
+        exitAction.setIcon(QIcon('exit.png'))
 
         clearAction = QtGui.QAction('Clear', self)   # QtGui.QAction(QIcon('Clear.png'), 'Clear', self)
         clearAction.triggered.connect(self.clearPlotArea)
+        clearAction.setIcon(QIcon('clear.png'))
 
         addPlotAction = QtGui.QAction( 'Add a Plot', self)  #QtGui.QAction(QIcon('Addplot.png'), 'Add a Plot', self)
         addPlotAction.triggered.connect(self.addDataPlotWin)
+        addPlotAction.setIcon(QIcon('addplot.png'))
 
         removePlotAction = QtGui.QAction('Remove a Plot', self) # QtGui.QAction(QIcon('Addplot.png'), 'Remove a Plot', self)
         removePlotAction.triggered.connect(self.removeDataPlotWin)
+        removePlotAction.setIcon(QIcon('remvplot.png'))
 
         viewAllAction = QtGui.QAction("View All", self)
         viewAllAction.triggered.connect(self.autoRangeAllWins)
+        viewAllAction.setIcon(QIcon('viewall.png'))
 
 
 
@@ -342,8 +347,6 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                 # convert the time in string to date time object
                 iTime = [self.sTimeToDateTime(j) for j in sTime]
 
-                #plotItem.hideAxis("bottom")
-
                 i += 1  # for color index use
 
                 # example
@@ -359,6 +362,14 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                 plotWgtName = self.currSelctPlotWgt.getViewBox().name
                 self.lPlottedItems.append({'Plot': plotWgtName, 'filename': filename, 'Column': curve_name })
                 self.listWidget.addItem(plotWgtName + '||' + curve_name + '||' + filename )
+
+                # labl = QLabel(curve_name)
+                # plotItem.addItem(labl)
+
+                for lgditem in plotItem.scene().items():  # remove the legend
+                    if isinstance(lgditem, pg.graphicsItems.LegendItem.ItemSample):  #
+                        lgditem.hide()   # hide the saple  # plotItem.scene().items()[5].item is the curve itself
+                        break
 
                 self.updatePlotWins()
 
@@ -394,6 +405,17 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
 
     def mouseMove(self, evt):
+        # get the plot
+        # if evt.currentItem is not None:
+        #     try:
+        #         plotname = evt.currentItem._viewWidget()    # get the current selected widget
+        #     except Exception as e:
+        #         pass
+
+        # connect the moveover of self.dataPlot.viewport()
+        # need to install an event filter on your view's viewport() and catch events in your widget's eventFilter method.
+        # https://qt-project.org/doc/qt-4.8/eventsandfilters.html#event-filters
+
 
         if self.bPlotted:
             pos = evt  # [0]  ## using signal proxy turns original arguments into a tudfDataple

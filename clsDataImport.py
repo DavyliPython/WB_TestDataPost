@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QFileDialog, QTableWidgetItem
 from PyQt5.QtGui import QIcon
-from PyQt5.Qt import QDialog,QMessageBox
+from PyQt5.Qt import QDialog,QMessageBox, Qt
 import PyQt5.QtGui
 
 import os
@@ -320,8 +320,19 @@ class clsImportData(QDialog, Ui_winImportData):
         self.tblreviewdata.setRowCount(len(self.data2review.index))
         self.tblreviewdata.setColumnCount(len(self.data2review.columns))
 
-         # change the head of table
-        self.tblreviewdata.setHorizontalHeaderLabels(self.dataHeader)
+        self.tblreviewdata.setWordWrap(True)
+
+
+         # change the head of table to the parameter name
+        headname = []
+        for x in self.dataHeader:
+            y = self.dataparam.getParamInfo(x , 'paramDesc')
+            if not y:
+                y = x
+            headname.append(y)
+
+        self.tblreviewdata.setHorizontalHeaderLabels(headname)
+
         #self.tblreviewdata.horizontalHeaderItem().setTextAlignment(Qt.AlignHCenter)
 
         for i, row in self.data2review.iterrows():
@@ -334,7 +345,7 @@ class clsImportData(QDialog, Ui_winImportData):
                 #else:
                 #    self.tableView.setItem(i, j, QTableWidgetItem(str(val)))
 
-
+        self.tblreviewdata.resizeColumnsToContents()
 
     def processData(self):
         datafilename = os.path.basename(self.sDataFilePath)  # get the filename
@@ -422,7 +433,7 @@ class clsImportData(QDialog, Ui_winImportData):
 
     def ImportDataToDf(self):
         if not self.tblreviewdata.selectedIndexes(): return  # no selection
-
+        self.progressBar.setValue(0)
         strTestData = self.processData()
         if not self.lTESTDATA:  # it is the first data set
             self.lTESTDATA.append(strTestData)
@@ -437,6 +448,7 @@ class clsImportData(QDialog, Ui_winImportData):
                 else:
                     self.lTESTDATA.append(strTestData)  # add current selection data into the testdata list
 
+        self.progressBar.setValue(0)
         self.close()
 
     def ExportDataToFile(self):
