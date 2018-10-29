@@ -75,7 +75,8 @@ class clsImportData(QDialog, Ui_winImportData):
     def setDataFilePath(self, filepath):
         self.sDataFilePath = filepath
         self.qleFilePath_in.setText(filepath)
-        self.qleFilePath_out.setText(os.path.dirname(filepath)+'/')
+        #self.qleFilePath_out.setText(os.path.dirname(filepath)+'/')
+        self.qleFilePath_out.setText(filepath[:-4] + '_new.txt')
 
     def setDataRate(self):
         self.qleRate.setText(str(self.iDataRate))
@@ -160,7 +161,7 @@ class clsImportData(QDialog, Ui_winImportData):
                 try:
                     dfData = pd.read_csv(self.sDataFilePath, delim_whitespace=True, nrows=200,
                                      error_bad_lines=False)  # read 200 rows only
-                    dfData['TIME']
+                    #dfData['TIME']
                     self.iDataRate = self.estDataRate(list(dfData['TIME']))
                 except Exception as e:
                     QMessageBox.critical(self, "Error", "Check the data format.\n" + e.__str__())
@@ -170,39 +171,45 @@ class clsImportData(QDialog, Ui_winImportData):
                     QMessageBox.critical(self, "Error", "Data rate should not be Zero")
                     return
 
+                try:
+                    self.setDataRate()
 
-                self.setDataRate()
+                    self.qleFileSize.setText(str(round(sizeoffile/1024, 1)))  # KB, keep on digit of decimal
 
-                self.qleFileSize.setText(str(round(sizeoffile/1024, 1)))  # KB, keep on digit of decimal
+                    # read the first 10 rows from the file
+                    self.data2review = dfData.head(int(self.leRows.text()))   # leRows = for preview rows
+                    self.dataHeader = list(dfData)  # data header list
 
-                # read the first 10 rows from the file
-                self.data2review = dfData.head(int(self.leRows.text()))   # leRows = for preview rows
-                self.dataHeader = list(dfData)  # data header list
+                    self.startTime = dfData['TIME'].iloc[0][:8]
+                    self.sStartTime = self.startTime   # default selected time is same as the data start time
 
-                self.startTime = dfData['TIME'].iloc[0][:8]
-                self.sStartTime = self.startTime   # default selected time is same as the data start time
+                    self.teDataFromTime.setTime(datetime.strptime('2018 ' + self.startTime, '%Y %H:%M:%S').time())
+                    self.teFromTime.setTime(datetime.strptime('2018 ' + self.startTime, '%Y %H:%M:%S').time())
 
-                self.teDataFromTime.setTime(datetime.strptime('2018 ' + self.startTime, '%Y %H:%M:%S').time())
-                self.teFromTime.setTime(datetime.strptime('2018 ' + self.startTime, '%Y %H:%M:%S').time())
+                    self.qleColumns.setText(str(dfData.shape[1]))
 
-                self.qleColumns.setText(str(dfData.shape[1]))
+                    self.iStartRow = self.firstRow
+                    self.qleFromRow.setText(str(self.firstRow))
+                except Exception as e:
+                    pass
+                    # print(e.__str__())
+                try:
+                    self.lastRow = self.estRowNum(self.sDataFilePath)
+                    self.iEndRow = self.lastRow
+                    self.qleRows.setText(str(self.lastRow))
+                    self.qleToRow.setText(str(self.lastRow))
+                except Exception as e:
+                    print(e.__str__())
 
-                self.iStartRow = self.firstRow
-                self.qleFromRow.setText(str(self.firstRow))
-
-
-                self.lastRow = self.estRowNum(self.sDataFilePath)
-                self.iEndRow = self.lastRow
-                self.qleRows.setText(str(self.lastRow))
-                self.qleToRow.setText(str(self.lastRow))
-
-                duration = round(self.iEndRow/self.iDataRate)  # estimate the seconds from row number and sample frequency
-                self.endTime = self.estTimeByDuration(self.sStartTime, duration)
-                self.sEndTime = self.endTime
-                self.teDataToTime.setTime(datetime.strptime('2018 ' + self.endTime, '%Y %H:%M:%S').time())
-                self.teToTime.setTime(datetime.strptime('2018 ' + self.endTime, '%Y %H:%M:%S').time())
-
-                # do the time consuming work of scan the data file
+                try:
+                    duration = round(self.iEndRow/self.iDataRate)  # estimate the seconds from row number and sample frequency
+                    self.endTime = self.estTimeByDuration(self.sStartTime, duration)
+                    self.sEndTime = self.endTime
+                    self.teDataToTime.setTime(datetime.strptime('2018 ' + self.endTime, '%Y %H:%M:%S').time())
+                    self.teToTime.setTime(datetime.strptime('2018 ' + self.endTime, '%Y %H:%M:%S').time())
+                except Exception as e:
+                    print(e.__str__())
+                    # do the time consuming work of scan the data file
                 self.populatePreviewTable()
 
 
@@ -279,6 +286,8 @@ class clsImportData(QDialog, Ui_winImportData):
 
         for iTime in lstTime:
             #iTime  12:17:44:531
+            if len(iTime) <= 5 and len(iTime.split(':'))==2: iTime = '00:'+ iTime + ':000'  # time = 17:44
+            if len(iTime) <= 8 and len(iTime.split(':')) == 3: iTime = iTime + ':000'  # time = 12:17:44
             iMillisecond = int(iTime.split(":")[3])  # 531
 
             if iMillisecond >= lastMillisecond:  # get the increase: n
@@ -300,8 +309,11 @@ class clsImportData(QDialog, Ui_winImportData):
                     return (idataRate)  # the case of 1 hz sample rate, normal exit
 
                 else:
-                    idataRate = int(1000 / (max(second_list) - min(second_list)) * (len(second_list) - 1))
-
+                    try:
+                        idataRate = int(1000 / (max(second_list) - min(second_list)) * (len(second_list) - 1))
+                    except Exception as e:
+                        idataRate = -1
+                        return idataRate
                 if idataRate & (idataRate - 1) == 0:
                     return (idataRate)  # for case of the power of 2 only (2, 4, 6, 8), normal exit
 

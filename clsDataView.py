@@ -25,7 +25,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
         self.lPlottedItems = []         # list of plotItems in the dataplot area
         self.currentPlotWin = ''        # keep current selected plot window for next curve plotting
-        self.lPlotWindows = ['plot1']            # list of plot window
+        self.lPlotWindows = ['Plot1']            # list of plot window
         self.lViewBoxes = []              # list of View box corresponding to the plotitem
         self.lAxisItems = []           # list of axis item of the layout of plotItem
         self.lPlottedCurves = []            # list of plotCurves of each plotItem
@@ -52,8 +52,10 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         pg.setConfigOption('background', 'w')  # before loading widget
 
         # # set the time axis of X
+        ### TODO: need to comment the self.dataplot line in the mainUI.py if it is recreated
+        ###        or there is a error the plot widget being with no name of Plot1
         xAxis = self.TimeAxisItem(orientation='bottom')
-        self.dataPlot = pg.PlotWidget(self, axisItems={'bottom': xAxis}, name='plot1')
+        self.dataPlot = pg.PlotWidget(self, axisItems={'bottom': xAxis}, name='Plot1')  ### TODO: need to comment the self.dataplot line in the mainUI.py if it is recreated
 
         self.setupUi(self)
         self.initUI()
@@ -152,6 +154,9 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         #################### get the test data from the import window
         self.winImpData = clsImportData(self.dataparam, self.lTestDATA)     # instance of the ImportData window
 
+        #self.startTimestamp = datetime.strptime('2018 ' + self.winImpData.sStartTime, '%Y %H:%M:%S').timestamp() # get the timestamp of the start tiem
+        #self.endTimestamp =   datetime.strptime('2018 ' + self.winImpData.sEndTime, '%Y %H:%M:%S').timestamp() # get the timestamp of the sta
+
         # # layout
         # self.L = pg.GraphicsLayout()
         # self.dataPlot.setCentralWidget(self.L)
@@ -174,6 +179,15 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         self.dataPlot.plotItem.scene().sigMouseClicked.connect(self.mouseClick)
         # self.region.setRegion()
 
+        vLine = pg.InfiniteLine(angle=90, movable=False, name='vline')
+        hLine = pg.InfiniteLine(angle=0, movable=False, name='hline')
+
+        self.dataPlot.addItem(vLine, ignoreBounds=True)
+        self.dataPlot.addItem(hLine, ignoreBounds=True)
+
+
+
+
         self.configPlotArea(self.dataPlot)
 
         # set current selection plot window background
@@ -184,10 +198,10 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
     def configPlotArea(self, plotWin):
 
-        self.vLine = pg.InfiniteLine(angle=90, movable=False)
-        self.hLine = pg.InfiniteLine(angle=0, movable=False)
-        plotWin.addItem(self.vLine, ignoreBounds=True)
-        plotWin.addItem(self.hLine, ignoreBounds=True)
+        vLine = pg.InfiniteLine(angle=90, movable=False, name='vline')
+        hLine = pg.InfiniteLine(angle=0, movable=False, name='hline')
+        plotWin.addItem(vLine, ignoreBounds=True)
+        plotWin.addItem(hLine, ignoreBounds=True)
         #self.dataPlotRange.addItem(self.region, ignoreBounds=True)
 
 
@@ -234,25 +248,29 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
     def clearPlotArea(self):
         #self.dataPlot.plotItem.clear()
-        for item in self.dataPlot.items():
-            self.dataPlot.removeItem(item)
+        choice = QtGui.QMessageBox.question(self, 'Plot1', "Remove all items in the first plot 1?",
+                                            QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
+        if choice == QtGui.QMessageBox.Yes:
 
-        lstitems = self.listWidget.findItems('plot1', Qt.MatchStartsWith)
-        if len(lstitems) > 0:
-            for iitem in lstitems:
-                self.listWidget.takeItem(self.listWidget.row(iitem))
+            for item in self.dataPlot.items():
+                self.dataPlot.removeItem(item)
 
-        for item in self.currSelctPlotWgt.scene().items():
-            if isinstance(item, pg.graphicsItems.LegendItem.LegendItem):  #  remove items in the scene including the legend
-                self.currSelctPlotWgt.scene().removeItem(item)
+            lstitems = self.listWidget.findItems('Plot1', Qt.MatchStartsWith)
+            if len(lstitems) > 0:
+                for iitem in lstitems:
+                    self.listWidget.takeItem(self.listWidget.row(iitem))
 
-        #self.dataPlotRange.plotItem.clear()
-        self.bPlotted = False
-        self.configPlotArea(self.dataPlot)
+            for item in self.currSelctPlotWgt.scene().items():
+                if isinstance(item, pg.graphicsItems.LegendItem.LegendItem):  #  remove items in the scene including the legend
+                    self.currSelctPlotWgt.scene().removeItem(item)
+
+            #self.dataPlotRange.plotItem.clear()
+            self.bPlotted = False
+            self.configPlotArea(self.dataPlot)
 
 
     def addDataPlotWin(self):
-        plotname = 'plot' + str(len(self.lPlotWindows) + 1)
+        plotname = 'Plot' + str(len(self.lPlotWindows) + 1)
         axis = self.TimeAxisItem(orientation='bottom')
         vb = pg.ViewBox()
         newdataPlot = pg.PlotWidget(self, viewBox=vb, axisItems={'bottom': axis}, name = plotname)
@@ -283,8 +301,8 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
     def removeDataPlotWin(self):
         curreSelctPlotWgtName = self.currSelctPlotWgt.getViewBox().name
-        if curreSelctPlotWgtName != 'plot1' and curreSelctPlotWgtName in self.lPlotWindows:  # can't delete plot1
-            choice = QtGui.QMessageBox.question(self, 'Plot', "Remove the selected plot window?",
+        if curreSelctPlotWgtName != 'Plot1' and curreSelctPlotWgtName in self.lPlotWindows:  # can't delete plot1
+            choice = QtGui.QMessageBox.question(self, curreSelctPlotWgtName, "Remove the selected plot window?",
                                                 QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
             if choice == QtGui.QMessageBox.Yes:
 
@@ -336,7 +354,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
 
                 data_head = iItem.text(1)           # get the column name of data for plotting
-                curve_name = data_head + "/" + iItem.text(2) + "/" + iItem.text(3)
+                curve_name = data_head + '>>' + iItem.text(2) + '>>' + iItem.text(3)    # parameter/parameter desc/unit
 
                 # y axis
                 data_2_plot = list(dfData[data_head])
@@ -360,7 +378,8 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                 if not self.bPlotted:
                     self.bPlotted = True
                 plotWgtName = self.currSelctPlotWgt.getViewBox().name
-                self.lPlottedItems.append({'Plot': plotWgtName, 'filename': filename, 'Column': curve_name })
+                if not plotWgtName: print("check the plotwidget definition in the mainUI.py, comment it!!!!")
+                self.lPlottedItems.append({'Plot': plotWgtName, 'Curvename': curve_name, 'Filename': filename })
                 self.listWidget.addItem(plotWgtName + '||' + curve_name + '||' + filename )
 
                 # labl = QLabel(curve_name)
@@ -375,32 +394,38 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
 
     def removeItemInPlot(self, selectedItem):
-        if selectedItem[0]:
-            [plotname,itemname,filename] = selectedItem[0].text().split('||')  #selectedItems()[0].text().split('||')
+        try:
+            if selectedItem[0]:
+                [plotname,itemname,filename] = selectedItem[0].text().split('||')  #selectedItems()[0].text().split('||')
 
-            for i in range(self.dataPlotLayout.count()):     # plot name = plot1 or plot2
-                plotWin = self.dataPlotLayout.itemAt(i).widget()
-                if plotname == plotWin.getViewBox().name:    # get the plot item
-                    break
+                for i in range(self.dataPlotLayout.count()):     # plot name = plot1 or plot2
+                    plotWin = self.dataPlotLayout.itemAt(i).widget()
+                    if plotname == plotWin.getViewBox().name:    # get the plot item
+                        break
 
-            for j in plotWin.plotItem.curves:    # get the curve item
-                curvename = j.name()
-                if curvename == itemname:
-                    curveFound = True
-                    break
-            if curveFound:
-                plotWin.removeItem(j)               # delete the curve from the plot
-                #plotWin.scene().removeItem(plotWin.plotItem.legend)
-                for item in plotWin.scene().items():    # remove the legend
-                    if isinstance(item, pg.graphicsItems.LegendItem.LegendItem):      #isinstance(plotWin.scene().items()[6], pg.graphicsItems.LegendItem.LegendItem)
-                        if item.items[0][1].text == curvename:                      # get the legend of the curve
-                            plotWin.scene().removeItem(item)
+                for j in plotWin.plotItem.curves:    # get the curve item
+                    curvename = j.name()
+                    if curvename == itemname:
+                        curveFound = True
+                        break
+                if curveFound:
+                    plotWin.removeItem(j)               # delete the curve from the plot
+                    #plotWin.scene().removeItem(plotWin.plotItem.legend)
+                    for item in plotWin.scene().items():    # remove the legend
+                        if isinstance(item, pg.graphicsItems.LegendItem.LegendItem):      #isinstance(plotWin.scene().items()[6], pg.graphicsItems.LegendItem.LegendItem)
+                            if item.items[0][1].text == curvename:                      # get the legend of the curve
+                                plotWin.scene().removeItem(item)
+                                break
+                    self.listWidget.takeItem( self.listWidget.row(selectedItem[0]))    # remove the item from the list
+                    for iPlottedItem in self.lPlottedItems:
+                        if iPlottedItem['Filename'] == filename and iPlottedItem['Curvename'] == curvename:
+                            self.lPlottedItems.remove(iPlottedItem)
                             break
-                self.listWidget.takeItem( self.listWidget.row(selectedItem[0]))    # remove the item from the list
 
-                self.updatePlotWins()
+                    self.updatePlotWins()
 
-
+        except Exception as e:
+            print(e.__str__())
 
 
 
@@ -412,32 +437,133 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         #     except Exception as e:
         #         pass
 
-        # connect the moveover of self.dataPlot.viewport()
-        # need to install an event filter on your view's viewport() and catch events in your widget's eventFilter method.
-        # https://qt-project.org/doc/qt-4.8/eventsandfilters.html#event-filters
+        #evtsender = self.sender()
 
+        labelformat1 = "<span style='font-size: 12pt'>Time=%s, <span style='color: red'>"  # the format of TIME string
+        #labelformat2 = "%s=%0.1f"  # the format of data floating %s=%0.1f
+        labelformat3 = "</span></span> "  # the format ending
+        y_value = {}    # to keep the y values of all curves
 
         if self.bPlotted:
             pos = evt  # [0]  ## using signal proxy turns original arguments into a tudfDataple
             # print(evt)
-            dfData=self.lTestDATA[0].data
-            startTime = datetime.strptime('2018 '+ dfData['TIME'].iloc[0], '%Y %H:%M:%S:%f').timestamp()
-            endTime =  datetime.strptime('2018 '+ dfData['TIME'].iloc[-1], '%Y %H:%M:%S:%f').timestamp()
-            if self.dataPlot.plotItem.sceneBoundingRect().contains(pos):
-                print('item pos x: %0.1f + y: %0.1f' %(pos.x(), pos.y()) )
-                mousePoint = self.dataPlot.plotItem.vb.mapSceneToView(pos)
-                print('view pos x: %0.1f + y: %0.1f' %(mousePoint.x(), mousePoint.y()))
-                x = int(mousePoint.x())
+            print('item pos x: %0.1f + y: %0.1f' % (pos.x(), pos.y()))
 
-                timeIndex = datetime.fromtimestamp(x).strftime('%H:%M:%S')  # convert x coord from timestamp to time string
-                #print('if3')
-                if x > startTime and x < endTime:
-                    # print(self.dataSummary[self.item_Selected][index])
-                    #self.label.setText("X = %0.1f; Y = %0.1f " %(mousePoint.x(), mousePoint.y())) #"<span style='font-size: 12pt'>x=%0.1f,   <span style='color: red'> Y1=%0.1f</span> " % (mousePoint.x(), float(dfData[index])))
-                    self.label.setText("<span style='font-size: 12pt'>Time=%s,   <span style='color: red'> Y1=%0.1f</span> " % (timeIndex, mousePoint.y()))
+            try:
+                for i in range(self.dataPlotLayout.count()):  # plot1 or plot2 in the layout
+                    plotWin = self.dataPlotLayout.itemAt(i).widget()
+                    if plotWin.plotItem.sceneBoundingRect().contains(pos):  # mouse point in the plot aera
+                        mousePoint = plotWin.plotItem.vb.mapSceneToView(pos)
+                        print ('Plot name: %s' %plotWin.getViewBox().name)
+                        print('view pos x: %0.1f + y: %0.1f' % (mousePoint.x(), mousePoint.y()))
+                        x = mousePoint.x()
+                        timeIndex = datetime.fromtimestamp(x).strftime('%H:%M:%S:%f')[:12]  # convert x coord from timestamp to time string
+                        print('time: %s' %timeIndex)
+                        #self.vLine.setPos(mousePoint.x())
+                        #self.hLine.setPos(mousePoint.y())
+                        vlineSet = False
+                        hlineSet = False
+                        for iLine in plotWin.items():
+                            if hasattr(iLine, 'name'):
+                                if iLine.name() == 'vline':
+                                    iLine.setPos(mousePoint.x())
+                                    vlineSet = True
+                                elif iLine.name() == 'hline':
+                                    iLine.setPos(mousePoint.y())
+                                    hlineSet = True
+                            if vlineSet and hlineSet:
+                                break
 
-                self.vLine.setPos(mousePoint.x())
-                self.hLine.setPos(mousePoint.y())
+
+                        for iCurve in self.lPlottedItems:
+                            plotname = iCurve['Plot']
+                            filename = iCurve["Filename"]
+                            curvename = iCurve["Curvename"].split('>>')[0]
+
+                            for dataset in self.lTestDATA:
+                                dfData = dataset.data
+                                startTime = datetime.strptime('2018 ' + dfData['TIME'].iloc[0],
+                                                          '%Y %H:%M:%S:%f').timestamp()
+                                endTime = datetime.strptime('2018 ' + dfData['TIME'].iloc[-1],
+                                                    '%Y %H:%M:%S:%f').timestamp()
+                                rate = dataset.rate
+
+                                if x > startTime and x < endTime:
+                                    row = round((x - startTime) * rate)   # the the row number
+                                    print ('row number: %d' %row)
+                                    y = dfData[curvename].iloc[row]    # dfData[curvename].iloc()[row]
+                                    print('y: %f' %y)
+                                    y_value[curvename]=y   # keep the curve value in y to the list
+
+                                    if plotWin.getViewBox().name == plotname:  # the data set is the right one
+                                        if dataset.fileName == filename:  # get the right data
+                                            if curvename in dataset.header:  # get the right column by name
+                                                curr_Y = y
+
+                                    # print(self.dataSummary[self.item_Selected][index])
+                                    # self.label.setText("X = %0.1f; Y = %0.1f " %(mousePoint.x(), mousePoint.y())) #"<span style='font-size: 12pt'>x=%0.1f,   <span style='color: red'> Y1=%0.1f</span> " % (mousePoint.x(), float(dfData[index])))
+
+
+
+                    #self.vLine.setPos(mousePoint.x())
+                    #self.hLine.setPos(mousePoint.y())
+            except Exception as e:
+                print(e.__str__())
+
+
+            # for i in range(self.dataPlotLayout.count()):  # plot1 or plot2 in the layout
+            #     plotWin = self.dataPlotLayout.itemAt(i).widget()
+            #     if plotWin.plotItem.sceneBoundingRect().contains(pos):  # mouse point in the plot aera
+            #         mousePoint = plotWin.plotItem.vb.mapSceneToView(pos)
+            #         print('Plot name: %s' % plotWin.getViewBox().name)
+            #         print('view pos x: %0.1f + y: %0.1f' % (mousePoint.x(), mousePoint.y()))
+            # for icurve in plotWin.plotItem.curves:  # get the curve item
+            #     curvename = icurve.name().split()[2]      # get the curve nam
+
+            #display the y value of all curves
+            try:
+                self.labelTime.setText("<span style='font-size: 11pt'>Time=%s" % (timeIndex))
+
+                if y_value:
+                        # show the values of all curves shown in plots
+                    labelformat2 = "%s=%0.1f" * y_value.__len__() + "</span> "
+                    self.labelValueY.setText("<span style='font-size: 11pt; color: red'>" + str(["%s=%0.1f" % (k,v) for k, v in y_value.items()]))
+            except Exception as e:
+                print (e.__str__())
+
+                    # ["%s=%s" % (k, v) for k, v in params.items()]
+                # self.label.setText("<span style='font-size: 12pt'>Time=%s,<span style='color: red'>%s:=%0.1f</span> " % (timeIndex,curvename,y))
+
+
+
+
+
+
+
+
+            # for dataset in self.lTestDATA:
+            #     if dataset.fileName = datafilename    # get the data set
+            #     dfData=dataset.data
+            #     if curvename is in dataset.header     # get the right column by name
+            #     startTime = datetime.strptime('2018 '+ dfData['TIME'].iloc[0], '%Y %H:%M:%S:%f').timestamp()
+            #     endTime =  datetime.strptime('2018 '+ dfData['TIME'].iloc[-1], '%Y %H:%M:%S:%f').timestamp()
+            #     rate = dataset.rate
+
+            # get the plot window by the window range
+
+
+                    # for jCurve in plotWin.plotItem.curves:  # get the curve item
+                    #     crvPoint = pg.CurvePoint(jCurve)
+                    #     plotWin.addItem(crvPoint)
+                    #     pntLabel = pg.TextItem("test", anchor=(0.5, -1.0))
+                    #     pntLabel.setParentItem(crvPoint)
+                    #     arrow2 = pg.ArrowItem(angle=90)
+                    #     arrow2.setParentItem(crvPoint)
+                    # break
+
+
+
+
 
 
 
