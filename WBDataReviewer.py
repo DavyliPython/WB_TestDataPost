@@ -2,7 +2,7 @@
 
 
 
-from PyQt5.Qt import QMenu, Qt, QAction, QCursor, QApplication
+from PyQt5.Qt import QApplication
 
 import sys
 
@@ -16,6 +16,5 @@ from clsDataView import clsDataView
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     mainWin = clsDataView()
-    #winImpData = clsImportData()
 
     sys.exit(app.exec_())

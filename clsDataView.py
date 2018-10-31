@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem, QGraphicsTextItem
+from PyQt5.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem
 from PyQt5.QtGui import QIcon
 from PyQt5.Qt import QMenu, Qt, QAction, QCursor, QMessageBox
 from PyQt5 import QtGui, QtCore
@@ -42,7 +42,9 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         self.parColPlotted = []           # parameter column in plotting
 
         self.minTimestamp = 1514764800.0      # the minimum of 20180101 08:00:00, ie. 1514764800.0 = datetime.datetime.strptime('2018-1-1 8:00:0', '%Y-%m-%d %H:%M:%S').timestamp()
-        self.maxTimestamp = datetime.strptime('2018-1-1 12:00:0', '%Y-%m-%d %H:%M:%S').timestamp()
+        self.maxTimestamp = 1514800800.0 # datetime.strptime('2018-1-1 18:00:0', '%Y-%m-%d %H:%M:%S').timestamp()
+        self.minYvalue = -2000
+        self.maxYvalue = 5000
 
             # r'C:\onedrive\OneDrive - Honeywell\VPD\parameters code.csv'
         self.dataparam = dataParam()   # data parameter definition
@@ -109,6 +111,11 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         plotMenu.addAction(clearAction)               # add menu item of 'Clear' plot
         plotMenu.addAction(addPlotAction)             # add menu item of 'Add a Plot'
         plotMenu.addAction(removePlotAction)          # add menu item of 'Add a Plot'
+
+        helpMenu = menubar.addMenu("Help")  # add menu help
+        helpAction = QAction('?', helpMenu)
+        helpAction.triggered.connect(self.helpme)
+        helpMenu.addAction(helpAction)
 
         toolBar = self.addToolBar("Open")
         toolBar.addAction(selFileAction)             # link tool bar to openfile action
@@ -178,8 +185,8 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         self.dataPlot.addItem(hLine, ignoreBounds=True)
 
         # set the default plot range
-        self.dataPlot.setXRange(self.minTimestamp,self.maxTimestamp,padding=0)
-        self.dataPlot.setYRange(-10, 10, padding=0)
+        self.dataPlot.setXRange(self.minTimestamp,self.maxTimestamp,padding=20)
+        self.dataPlot.setYRange(-10, 10, padding=20)
 
         self.dataPlot.plotItem.getViewBox().setLimits()
 
@@ -326,8 +333,8 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         newdataPlot.plotItem.scene().sigMouseMoved.connect(self.mouseMove)
 
         # set the default plot range
-        newdataPlot.setXRange(self.minTimestamp,self.maxTimestamp,padding=0)
-        newdataPlot.setYRange(-10, 10, padding=0)
+        newdataPlot.setXRange(self.minTimestamp,self.maxTimestamp,padding=20)
+        newdataPlot.setYRange(-10, 10, padding=20)
 
         newdataPlot.plotItem.getAxis('left').setWidth(w=30)
 
@@ -498,12 +505,27 @@ class clsDataView(QMainWindow, Ui_MainWindow):
             print('exception @ mousemove 1' + e.__str__())
 
         if self.bPlotted:
-            # print(evt)
-            #print('item pos x: %0.1f + y: %0.1f' % (pos.x(), pos.y()))
-            #mousePoint = self.currSelctPlotWgt.plotItem.vb.mapSceneToView(pos)  # map the mouse position to the view position
-            # mpOffset = plotWin.plotItem.vb.mapSceneToView(QtCore.QPointF(0.0, 0.0))   # offset the mouse point
-            x = self.minTimestamp
-            timeIndex = datetime.fromtimestamp(x).strftime('%H:%M:%S:%f')[:12]
+            try:
+                mousePoint = self.currSelctPlotWgt.plotItem.vb.mapSceneToView(pos)  # map the mouse position to the view position
+                # mpOffset = plotWin.plotItem.vb.mapSceneToView(QtCore.QPointF(0.0, 0.0))   # offset the mouse point
+                x = self.minTimestamp
+                timeIndex = datetime.fromtimestamp(x).strftime('%H:%M:%S:%f')[:12]
+                if mousePoint.x() < self.minTimestamp - 3600 or mousePoint.x() > self.maxTimestamp + 2 * 3600:
+                    #self.curLabelofYvalue.setPos(self.minTimestamp, mousePoint.y())
+                    self.currSelctPlotWgt.plotItem.removeItem(self.curLabelofYvalue)  # remove the item
+                    self.curLabelofYvalue.setParentItem(self.currSelctPlotWgt.getViewBox())
+                    self.currSelctPlotWgt.plotItem.vb.autoRange()
+                    return
+                if mousePoint.y() < self.minYvalue or mousePoint.y() > self.maxYval:
+                    #self.curLabelofYvalue.setPos(mousePoint.x(), self.minYvalue)
+                    self.currSelctPlotWgt.plotItem.removeItem(self.curLabelofYvalue)  # remove the item
+                    self.curLabelofYvalue.setParentItem(self.currSelctPlotWgt.getViewBox())
+                    self.currSelctPlotWgt.plotItem.vb.autoRange()
+                    #self.currSelctPlotWgt.scale(1,1,[{self.minTimestamp,self.minYvalue}])
+                    return
+            except Exception as e:
+                pass
+
             try:
                 #currentPlotArea = self.currSelctPlotWgt
                 # move the vline in all plot area
@@ -628,7 +650,8 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                 child.setText(2, self.dataparam.getParamInfo(self.treeItem[i],'paramDesc'))
                 child.setText(3, self.dataparam.getParamInfo(self.treeItem[i],'unit'))
 
-
+    def helpme(self):
+        QMessageBox.information(self,'Wheel & Brake Test Data Explorer', 'Technical support:\nHON MS&C Shanghai.')
 
     class TimeAxisItem(pg.AxisItem): #### class TimeAxisItem is used for overloading x axis as time
         def tickStrings(self, values, scale, spacing):
