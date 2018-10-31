@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QFileDialog, QTableWidgetItem
 from PyQt5.QtGui import QIcon
-from PyQt5.Qt import QDialog,QMessageBox, Qt
+from PyQt5.Qt import QDialog,QMessageBox
 import PyQt5.QtGui
 
 import os
@@ -418,7 +418,7 @@ class clsImportData(QDialog, Ui_winImportData):
                 try:
                     chunk = dfData.get_chunk(chunkSize)
                     chunkOfSelected = chunk[selectedColumnHeader]
-                    if chunkOfSelected.shape[0] < len(extract_row_range):
+                    if chunkOfSelected.shape[0] < len(extract_row_range) * self.iDataRate // self.newRate:
                         extract_row_range = range(0, chunkOfSelected.shape[0] - 1, self.iDataRate // self.newRate)
                     chunkOfSelected = chunkOfSelected.iloc[extract_row_range, :]
                     chunks.append(chunkOfSelected)
@@ -426,6 +426,7 @@ class clsImportData(QDialog, Ui_winImportData):
                     self.progressBar.setValue(round(rows_readover/self.lastRow *100))
                     if rows_readover > self.iEndRow: break
                 except StopIteration:
+                    self.progressBar.setValue(100)
                     print("data imported") #QMessageBox.critical (self, "Error", 'Iteration is stopped')
                     break
 

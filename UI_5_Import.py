@@ -123,7 +123,7 @@ class Ui_winImportData(object):
         self.sbRate = QtWidgets.QSpinBox(self.groupBox_2)
         self.sbRate.setGeometry(QtCore.QRect(110, 20, 51, 22))
         self.sbRate.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
-        self.sbRate.setMaximum(256)
+        self.sbRate.setMaximum(1024)
         self.sbRate.setSingleStep(1)
         self.sbRate.setProperty("value", 0)
         self.sbRate.setObjectName("sbRate")

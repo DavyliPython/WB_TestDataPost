@@ -694,7 +694,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         return outTime
 
 class dataParam:
-    def __init__(self, paramFile = os.getcwd() + '\\parameters code.csv'):
+    def __init__(self, paramFile = '.\parameters code.csv'):   # os.getcwd() + \\parameters code.csv
         self.paramFile = paramFile #the path to the parameter file: r'C:\onedrive\OneDrive - Honeywell\VPD\parameters code.csv'
         self.columName = ['param', 'paramDesc', 'paramDescChs', 'unit', 'unitM', 'unitChs', 'rate']
         try:
