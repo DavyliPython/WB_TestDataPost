@@ -1,5 +1,7 @@
-from PyQt5.QtWidgets import QMainWindow, QFileDialog, QTreeWidget, QTreeWidgetItem, QWidget
-from PyQt5.QtGui import QIcon
+###__Version__ V1.0
+
+
+
 from PyQt5.Qt import QMenu, Qt, QAction, QCursor, QApplication
 
 import sys
