@@ -47,7 +47,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         self.maxYvalue = 5000
 
             # r'C:\onedrive\OneDrive - Honeywell\VPD\parameters code.csv'
-        self.dataparam = dataParam()   # data parameter definition
+        self.dataparam = dataParam(self.resource_path('parameters_code.csv'))   # data parameter definition
         #self.dataparam = dateParam()
         paramlist = self.dataparam.getParamName()
         #self.dataparam.getParamInfo('ABCVIINR', 'paramDesc')
@@ -77,30 +77,30 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         selFileAction.setShortcut('Ctrl+O')
         selFileAction.setStatusTip('Open new File')
         selFileAction.triggered.connect(self.openFile)     # open data file
-        selFileAction.setIcon(QIcon('import.png'))
+        selFileAction.setIcon(QIcon(self.resource_path('import.png')))
 
         exitAction = QtGui.QAction('&Exit', self)    #QtGui.QAction(QIcon('exit.png'), '&Exit', self)
         exitAction.setShortcut('Ctrl+Q')
         exitAction.setStatusTip('Exit the application')
         #exitAction.triggered.connect(QtGui.qApp.quit)
         exitAction.triggered.connect(self.exitAPP)     # exit the application
-        exitAction.setIcon(QIcon('exit.png'))
+        exitAction.setIcon(QIcon(self.resource_path('exit.png')))
 
         clearAction = QtGui.QAction('Clear', self)   # QtGui.QAction(QIcon('Clear.png'), 'Clear', self)
         clearAction.triggered.connect(self.clearPlotArea)
-        clearAction.setIcon(QIcon('clear.png'))
+        clearAction.setIcon(QIcon(self.resource_path('clear.png')))
 
         addPlotAction = QtGui.QAction( 'Add a Plot', self)  #QtGui.QAction(QIcon('Addplot.png'), 'Add a Plot', self)
         addPlotAction.triggered.connect(self.addDataPlotWin)
-        addPlotAction.setIcon(QIcon('addplot.png'))
+        addPlotAction.setIcon(QIcon(self.resource_path('addplot.png')))
 
         removePlotAction = QtGui.QAction('Remove the Plot', self) # QtGui.QAction(QIcon('Addplot.png'), 'Remove a Plot', self)
         removePlotAction.triggered.connect(self.removeDataPlotWin)
-        removePlotAction.setIcon(QIcon('remvplot.png'))
+        removePlotAction.setIcon(QIcon(self.resource_path('remvplot.png')))
 
         viewAllAction = QtGui.QAction("View All", self)
         viewAllAction.triggered.connect(self.autoRangeAllWins)
-        viewAllAction.setIcon(QIcon('viewall.png'))
+        viewAllAction.setIcon(QIcon(self.resource_path('viewall.png')))
 
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')         # add menu File
@@ -653,6 +653,16 @@ class clsDataView(QMainWindow, Ui_MainWindow):
     def helpme(self):
         QMessageBox.information(self,'Wheel & Brake Test Data Explorer', 'Technical support:\nHON MS&C Shanghai.')
 
+    ### for PyInataller use to bundle data file into one file
+    def resource_path(self, relative_path):
+        """ Get absolute path to resource, works for dev and for PyInstaller """
+        if hasattr(sys, '_MEIPASS'):
+            return os.path.join(sys._MEIPASS, relative_path)
+        return os.path.join(os.path.abspath("."), relative_path)
+        # base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+        # return os.path.join(base_path, relative_path)
+
+
     class TimeAxisItem(pg.AxisItem): #### class TimeAxisItem is used for overloading x axis as time
         def tickStrings(self, values, scale, spacing):
             strns = []
@@ -694,7 +704,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         return outTime
 
 class dataParam:
-    def __init__(self, paramFile = 'parameters_code.csv'):   # os.getcwd() + \\parameters_code.csv
+    def __init__(self, paramFile):   # os.getcwd() + \\parameters_code.csv
         self.paramFile = paramFile #the path to the parameter file: r'C:\onedrive\OneDrive - Honeywell\VPD\parameters code.csv'
         self.columName = ['param', 'paramDesc', 'paramDescChs', 'unit', 'unitM', 'unitChs', 'rate']
         self.paramDF = pd.DataFrame()
