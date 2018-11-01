@@ -213,7 +213,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
     def eventFilter(self, source, event):
         if event.type() == QtCore.QEvent.Enter:
-            print("Enter " + source.plotItem.vb.name)
+            #print("Enter " + source.plotItem.vb.name)
             self.currSelctPlotWgt.setBackground('default')
             self.currSelctPlotWgt = source
             self.currSelctPlotWgt.setBackground(0.95)
@@ -244,7 +244,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
 
         if event.type() == QtCore.QEvent.Leave: # and source is self.dataPlot:
-            print("Leave " + source.plotItem.vb.name)
+            #print("Leave " + source.plotItem.vb.name)
 
             for item in source.plotItem.items:
                 if isinstance(item, pg.graphicsItems.TextItem.TextItem):
@@ -296,7 +296,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                     self.currSelctPlotWgt.setBackground(0.95)
                 except Exception as e:
                     pass
-                    #QMessageBox.Critical(self, "Error", e.__str__())
+                    #QMessageBox.critical(self, "Error", e.__str__())
 
     def clearPlotArea(self):
         #self.dataPlot.plotItem.clear()
@@ -439,7 +439,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                     plotcurve = pg.PlotCurveItem(x=[x.timestamp() for x in iTime], y= data_2_plot, name = curve_name, pen=self.colorDex[i%5])
                     plotItem.addItem(plotcurve)
                 except Exception as e:
-                    QMessageBox.Critical(self, "Error", "Error with data to plot.\n" + e.__str__())
+                    QMessageBox.critical(self, "Error", "Error with data to plot.\n" + e.__str__())
 
                 if not self.bPlotted:
                     self.bPlotted = True
@@ -689,18 +689,21 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         try:
             outTime = datetime.strptime('2018 ' + inTime, '%Y %H:%M:%S:%f')  # convert the time from string to the datetime format
         except Exception as e:
-            QMessageBox.Critical(self, "Error", "TIME format error.\n" + e.__str__())
+            QMessageBox.critical(self, "Error", "TIME format error.\n" + e.__str__())
             outTime = datetime.now()
         return outTime
 
 class dataParam:
-    def __init__(self, paramFile = '.\parameters code.csv'):   # os.getcwd() + \\parameters code.csv
+    def __init__(self, paramFile = 'parameters_code.csv'):   # os.getcwd() + \\parameters_code.csv
         self.paramFile = paramFile #the path to the parameter file: r'C:\onedrive\OneDrive - Honeywell\VPD\parameters code.csv'
         self.columName = ['param', 'paramDesc', 'paramDescChs', 'unit', 'unitM', 'unitChs', 'rate']
+        self.paramDF = pd.DataFrame()
         try:
             self.paramDF = pd.read_csv(self.paramFile, names=self.columName, index_col=0, header=0)
         except Exception as e:
-            QMessageBox.Critical(self, "Error", "Error in reading the parameter file.\n" + e.__str__())
+            print("The file: '" + self.paramFile + "' not exists! Default column headers are used")
+            pass
+            #QMessageBox.critical(self. "Error", "Error in reading the parameter file.\n" + e.__str__())
 
 
     def getParamName(self):

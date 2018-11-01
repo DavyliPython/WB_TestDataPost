@@ -409,7 +409,7 @@ class clsImportData(QDialog, Ui_winImportData):
                 self.progressBar.setValue(round(rows_readover / self.lastRow * 100))
 
             except Exception as e:
-                QMessageBox.Critical(self, "Error", e.__str__())
+                QMessageBox.critical(self, "Error", e.__str__())
                 pass
 
             extract_row_range = range(0, chunkSize - 1, self.iDataRate // self.newRate)    # get the rows of newrate per the rows of data rate
@@ -474,7 +474,7 @@ class clsImportData(QDialog, Ui_winImportData):
             strTestData.data.to_csv(file_out,sep = "\t", index = False)
 
         except Exception as e:
-            QMessageBox.Critical(self, "Error","Error in writing data to file.\n" + e.__str__()  )
+            QMessageBox.critical(self, "Error","Error in writing data to file.\n" + e.__str__()  )
 
         self.progressBar.setValue(100)
         QMessageBox.information(self, "Export", "Wrote data to file successfully.")

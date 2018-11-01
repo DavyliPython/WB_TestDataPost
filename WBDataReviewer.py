@@ -2,7 +2,7 @@
 
 
 
-from PyQt5.Qt import QApplication
+from PyQt5.QtWidgets import QApplication
 
 import sys
 
