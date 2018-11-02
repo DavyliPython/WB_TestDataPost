@@ -1,13 +1,14 @@
 from PyQt5.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem
 from PyQt5.QtGui import QIcon
 from PyQt5.Qt import QMenu, Qt, QAction, QCursor, QMessageBox
-from PyQt5 import QtGui, QtCore
+from PyQt5.QtCore import QEvent
 
-import pyqtgraph as pg
-import pandas as pd
+#import pyqtgraph as pg
+from pyqtgraph import setConfigOption, PlotWidget, InfiniteLine, TextItem, graphicsItems, ViewBox, PlotCurveItem, AxisItem
+from pandas import DataFrame, read_csv
 
 import sys
-import os
+from os import path
 from datetime import datetime
 
 
@@ -54,13 +55,13 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         #self.dfData = pd.DataFrame()    # pandas dataframes to be plot
 
         # pyqtGraph 相关设置，必须要在self.setupUi之前
-        pg.setConfigOption('background', 'w')  # before loading widget
+        setConfigOption('background', 'w')  # before loading widget
 
         # # set the time axis of X
         ### TODO: need to comment the self.dataplot line in the mainUI.py if it is recreated
         ###        or there is a error the plot widget being with no name of Plot1
         xAxis = self.TimeAxisItem(orientation='bottom')
-        self.dataPlot = pg.PlotWidget(self, axisItems={'bottom': xAxis}, name='Plot1')  ### TODO: need to comment the self.dataplot line in the mainUI.py if it is recreated
+        self.dataPlot = PlotWidget(self, axisItems={'bottom': xAxis}, name='Plot1')  ### TODO: need to comment the self.dataplot line in the mainUI.py if it is recreated
 
         self.setupUi(self)
         self.initUI()
@@ -79,26 +80,26 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         selFileAction.triggered.connect(self.openFile)     # open data file
         selFileAction.setIcon(QIcon(self.resource_path('import.png')))
 
-        exitAction = QtGui.QAction('&Exit', self)    #QtGui.QAction(QIcon('exit.png'), '&Exit', self)
+        exitAction = QAction('&Exit', self)    #QtGui.QAction(QIcon('exit.png'), '&Exit', self)
         exitAction.setShortcut('Ctrl+Q')
         exitAction.setStatusTip('Exit the application')
         #exitAction.triggered.connect(QtGui.qApp.quit)
         exitAction.triggered.connect(self.exitAPP)     # exit the application
         exitAction.setIcon(QIcon(self.resource_path('exit.png')))
 
-        clearAction = QtGui.QAction('Clear', self)   # QtGui.QAction(QIcon('Clear.png'), 'Clear', self)
+        clearAction = QAction('Clear', self)   # QtGui.QAction(QIcon('Clear.png'), 'Clear', self)
         clearAction.triggered.connect(self.clearPlotArea)
         clearAction.setIcon(QIcon(self.resource_path('clear.png')))
 
-        addPlotAction = QtGui.QAction( 'Add a Plot', self)  #QtGui.QAction(QIcon('Addplot.png'), 'Add a Plot', self)
-        addPlotAction.triggered.connect(self.addDataPlotWin)
+        addPlotAction = QAction( 'Add a Plot', self)  #QtGui.QAction(QIcon('Addplot.png'), 'Add a Plot', self)
+        addPlotAction.triggered.connect(self.addPlotAera)
         addPlotAction.setIcon(QIcon(self.resource_path('addplot.png')))
 
-        removePlotAction = QtGui.QAction('Remove the Plot', self) # QtGui.QAction(QIcon('Addplot.png'), 'Remove a Plot', self)
+        removePlotAction = QAction('Remove the Plot', self) # QtGui.QAction(QIcon('Addplot.png'), 'Remove a Plot', self)
         removePlotAction.triggered.connect(self.removeDataPlotWin)
         removePlotAction.setIcon(QIcon(self.resource_path('remvplot.png')))
 
-        viewAllAction = QtGui.QAction("View All", self)
+        viewAllAction = QAction("View All", self)
         viewAllAction.triggered.connect(self.autoRangeAllWins)
         viewAllAction.setIcon(QIcon(self.resource_path('viewall.png')))
 
@@ -144,12 +145,15 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         self.treeWidget.treeContextMenu = QMenu(self)
         self.actionA = self.treeWidget.treeContextMenu.addAction(u'Plot')
         self.actionA.triggered.connect(
-            lambda: self.plotData(self.treeWidget.selectedItems()))
+            lambda: self.plotData(self.currSelctPlotWgt, self.treeWidget.selectedItems()))
         self.treeWidget.setColumnCount(4)
         self.treeWidget.setHeaderLabels(['#', 'Parameter', 'Parameter Name', 'Unit'])
         self.treeWidget.setColumnWidth(0, 10)
         self.treeWidget.setColumnWidth(1, 50)
         self.treeWidget.setColumnWidth(2, 100)
+
+        ### drag and drop
+        self.treeWidget.setDragDropMode(self.treeWidget.DragOnly)
 
 
         # set up context menu of list widget
@@ -178,8 +182,13 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         self.dataPlot.plotItem.scene().sigMouseMoved.connect(self.mouseMove)
         #self.dataPlot.plotItem.scene().sigMouseClicked.connect(self.mouseClick)
 
-        vLine = pg.InfiniteLine(angle=90, movable=False, name='vline')
-        hLine = pg.InfiniteLine(angle=0, movable=False, name='hline')
+        ## drag and drop
+        self.dataPlot.dragEnterEvent = self.dragEnterEvent
+        self.dataPlot.plotItem.setAcceptDrops(True)
+        self.dataPlot.plotItem.dropEvent = self.dropEvent
+
+        vLine = InfiniteLine(angle=90, movable=False, name='vline')
+        hLine = InfiniteLine(angle=0, movable=False, name='hline')
 
         self.dataPlot.addItem(vLine, ignoreBounds=True)
         self.dataPlot.addItem(hLine, ignoreBounds=True)
@@ -191,13 +200,13 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         self.dataPlot.plotItem.getViewBox().setLimits()
 
         self.dataPlot.plotItem.getAxis('left').setWidth(w=30)
-
+        self.dataPlot.plotItem.hideButtons()
 
 
         #self.dataPlot.plotItem.scene().sigMouseLeave.connect(self.mouseLeave) # ##TODO: cleaning house job
         self.dataPlot.installEventFilter(self)
 
-        txtY_value = pg.TextItem("", fill=(0, 0, 255, 80), anchor=(0,1),color='w')
+        txtY_value = TextItem("", fill=(0, 0, 255, 80), anchor=(0,1),color='w')
         txtY_value.setParentItem(viewBox)
 
         self.curLabelofYvalue = txtY_value
@@ -212,8 +221,8 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         self.currSelctPlotWgt.setBackground(0.95)
 
     def eventFilter(self, source, event):
-        if event.type() == QtCore.QEvent.Enter:
-            #print("Enter " + source.plotItem.vb.name)
+        if event.type() == QEvent.Enter:
+            print("Enter " + source.plotItem.vb.name)
             self.currSelctPlotWgt.setBackground('default')
             self.currSelctPlotWgt = source
             self.currSelctPlotWgt.setBackground(0.95)
@@ -231,23 +240,23 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
                 # get the lable of labelY_value
                 for item in source.getViewBox().childItems():
-                    if isinstance(item, pg.graphicsItems.TextItem.TextItem):  # the text label is linked to the viewbox, not showing up
+                    if isinstance(item, graphicsItems.TextItem.TextItem):  # the text label is linked to the viewbox, not showing up
                         self.curLabelofYvalue = item
                         source.addItem(self.curLabelofYvalue)                 # add the text label to show it up
                         labelofYvalueExisting = True
                         break
                 if not labelofYvalueExisting:
                     for item in source.plotItem.items:                      # the text label is in the plot item list
-                        if isinstance(item, pg.graphicsItems.TextItem.TextItem):
+                        if isinstance(item, graphicsItems.TextItem.TextItem):
                             self.curLabelofYvalue = item
                             break
 
 
-        if event.type() == QtCore.QEvent.Leave: # and source is self.dataPlot:
-            #print("Leave " + source.plotItem.vb.name)
+        if event.type() == QEvent.Leave: # and source is self.dataPlot:
+            print("Leave " + source.plotItem.vb.name)
 
             for item in source.plotItem.items:
-                if isinstance(item, pg.graphicsItems.TextItem.TextItem):
+                if isinstance(item, graphicsItems.TextItem.TextItem):
                     source.plotItem.removeItem(item)                    # remove the item
                     item.setParentItem(source.getViewBox())             # keep the link of the text label in the view box
                     break
@@ -259,13 +268,19 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                         iLine.setPos(self.minTimestamp)
                         break
 
+        # print(event.type())
+        # if event.type() == QEvent.GraphicsSceneDragEnter:
+        #     self.currSelctPlotWgt.setBackground('default')
+        #     self.currSelctPlotWgt = source
+        #     self.currSelctPlotWgt.setBackground(0.95)
+
         return super(clsDataView,self).eventFilter(source,event)
 
 
     def configPlotArea(self, plotWin):
 
-        vLine = pg.InfiniteLine(angle=90, movable=False, name='vline')
-        hLine = pg.InfiniteLine(angle=0, movable=False, name='hline')
+        vLine = InfiniteLine(angle=90, movable=False, name='vline')
+        hLine = InfiniteLine(angle=0, movable=False, name='hline')
         plotWin.addItem(vLine, ignoreBounds=True)
         plotWin.addItem(hLine, ignoreBounds=True)
         #self.dataPlotRange.addItem(self.region, ignoreBounds=True)
@@ -275,6 +290,35 @@ class clsDataView(QMainWindow, Ui_MainWindow):
     def showContextMenu(self):
         self.treeWidget.treeContextMenu.move(QCursor.pos())
         self.treeWidget.treeContextMenu.show()
+
+    def dragEnterEvent(self, evt):
+        evt.accept()
+        # pass
+
+        # for i in range(self.dataPlotLayout.count()):
+        #     plotAera = self.dataPlotLayout.itemAt(i).widget()
+        #     print(plotAera.underMouse())
+        #     if plotAera.underMouse():
+        #         self.currSelctPlotWgt = plotAera
+        #         evt.accept()
+        #         break
+
+        # if self.currSelctPlotWgt.underMouse():
+
+        # else:
+        #     evt.ignore()
+
+    def dropEvent(self, evt):
+        #if self.currSelctPlotWgt.underMouse():
+        for i in range(self.dataPlotLayout.count()):
+            plotAera = self.dataPlotLayout.itemAt(i).widget()
+            print(plotAera.plotItem.vb.name)
+            if plotAera.underMouse():
+                self.currSelctPlotWgt = plotAera
+                self.plotData(plotAera, self.treeWidget.selectedItems())
+                break
+
+        self.plotData(self.currSelctPlotWgt, self.treeWidget.selectedItems())
 
     def showListContextMenu(self):
         self.listWidget.listContextMenu.move(QCursor.pos())
@@ -300,9 +344,9 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
     def clearPlotArea(self):
         #self.dataPlot.plotItem.clear()
-        choice = QtGui.QMessageBox.question(self, 'Plot1', "Remove all items in the first plot 1?",
-                                            QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
-        if choice == QtGui.QMessageBox.Yes:
+        choice = QMessageBox.question(self, 'Plot1', "Remove all items in the first plot 1?",
+                                            QMessageBox.Yes | QMessageBox.No)
+        if choice == QMessageBox.Yes:
 
             for item in self.dataPlot.items():
                 self.dataPlot.removeItem(item)
@@ -313,7 +357,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                     self.listWidget.takeItem(self.listWidget.row(iitem))
 
             for item in self.currSelctPlotWgt.scene().items():
-                if isinstance(item, pg.graphicsItems.LegendItem.LegendItem):  #  remove items in the scene including the legend
+                if isinstance(item, graphicsItems.LegendItem.LegendItem):  #  remove items in the scene including the legend
                     self.currSelctPlotWgt.scene().removeItem(item)
 
             #self.dataPlotRange.plotItem.clear()
@@ -321,22 +365,28 @@ class clsDataView(QMainWindow, Ui_MainWindow):
             self.configPlotArea(self.dataPlot)
 
 
-    def addDataPlotWin(self):
+    def addPlotAera(self):
         plotname = 'Plot' + str(len(self.lPlotWindows) + 1)
         axis = self.TimeAxisItem(orientation='bottom')
-        vb = pg.ViewBox()
-        newdataPlot = pg.PlotWidget(self, viewBox=vb, axisItems={'bottom': axis}, name = plotname)
+        vb = ViewBox()
+        newdataPlot = PlotWidget(self, viewBox=vb, axisItems={'bottom': axis}, name = plotname)
         self.dataPlotLayout.addWidget(newdataPlot)
         self.configPlotArea(newdataPlot)
 
         newdataPlot.plotItem.scene().sigMouseClicked.connect(self.mouseClick)
         newdataPlot.plotItem.scene().sigMouseMoved.connect(self.mouseMove)
 
+        ## drag and drop
+        newdataPlot.dragEnterEvent = self.dragEnterEvent
+        newdataPlot.plotItem.setAcceptDrops(True)
+        newdataPlot.plotItem.dropEvent = self.dropEvent
+
         # set the default plot range
         newdataPlot.setXRange(self.minTimestamp,self.maxTimestamp,padding=20)
         newdataPlot.setYRange(-10, 10, padding=20)
 
         newdataPlot.plotItem.getAxis('left').setWidth(w=30)
+        newdataPlot.plotItem.hideButtons()
 
         newdataPlot.installEventFilter(self)
 
@@ -359,7 +409,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         lastplotItem.getViewBox().setXLink(newdataPlot)
         #lastplotItem.getViewBox().autoRange()
 
-        txtY_value = pg.TextItem("", fill=(0, 0, 255, 80), anchor=(0, 1), color='w')
+        txtY_value = TextItem("", fill=(0, 0, 255, 80), anchor=(0, 1), color='w')
         txtY_value.setParentItem(newdataPlot.plotItem.getViewBox())
 
         self.autoRangeAllWins()
@@ -369,9 +419,9 @@ class clsDataView(QMainWindow, Ui_MainWindow):
     def removeDataPlotWin(self):
         curreSelctPlotWgtName = self.currSelctPlotWgt.getViewBox().name
         if curreSelctPlotWgtName != 'Plot1' and curreSelctPlotWgtName in self.lPlotWindows:  # can't delete plot1
-            choice = QtGui.QMessageBox.question(self, curreSelctPlotWgtName, "Remove the selected plot window?",
-                                                QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
-            if choice == QtGui.QMessageBox.Yes:
+            choice = QMessageBox.question(self, curreSelctPlotWgtName, "Remove the selected plot window?",
+                                                QMessageBox.Yes | QMessageBox.No)
+            if choice == QMessageBox.Yes:
 
                 for item in self.currSelctPlotWgt.items():   # delete the items of the plot
                     self.currSelctPlotWgt.removeItem(item)
@@ -394,7 +444,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                 self.currSelctPlotWgt = self.dataPlot   # set the current selection to plot1
                 self.currSelctPlotWgt.setBackground(0.95)
 
-    def plotData(self, selectedItems):
+    def plotData(self, plotItem, selectedItems):
         '''selectedItems: items selected in tree view
            dfData: data frame of the selected data
         '''
@@ -404,7 +454,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         # viewbox = pg.ViewBox()
         # plotItem.scene().addItem(viewbox)
 
-        plotItem = self.currSelctPlotWgt
+        #plotItem = self.currSelctPlotWgt
         plotItem.addLegend()
 
         #plotItem.getAxis('bottom').setPen(pg.mkPen(color='#000000', width=1))
@@ -436,7 +486,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                 # example
                 # pw.plot(x=[x.timestamp() for x in iTime ], y= list(df['BCVIIN']), pen = 'r')
                 try:
-                    plotcurve = pg.PlotCurveItem(x=[x.timestamp() for x in iTime], y= data_2_plot, name = curve_name, pen=self.colorDex[i%5])
+                    plotcurve = PlotCurveItem(x=[x.timestamp() for x in iTime], y= data_2_plot, name = curve_name, pen=self.colorDex[i%5])
                     plotItem.addItem(plotcurve)
                 except Exception as e:
                     QMessageBox.critical(self, "Error", "Error with data to plot.\n" + e.__str__())
@@ -452,7 +502,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                 # plotItem.addItem(labl)
 
                 for lgditem in plotItem.scene().items():  # remove the legend
-                    if isinstance(lgditem, pg.graphicsItems.LegendItem.ItemSample):  #
+                    if isinstance(lgditem, graphicsItems.LegendItem.ItemSample):  #
                         lgditem.hide()   # hide the sample of legend  # plotItem.scene().items()[5].item is the curve itself
                         break
 
@@ -478,7 +528,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                     plotWin.removeItem(j)               # delete the curve from the plot
                     #plotWin.scene().removeItem(plotWin.plotItem.legend)
                     for item in plotWin.scene().items():    # remove the legend
-                        if isinstance(item, pg.graphicsItems.LegendItem.LegendItem):      #isinstance(plotWin.scene().items()[6], pg.graphicsItems.LegendItem.LegendItem)
+                        if isinstance(item, graphicsItems.LegendItem.LegendItem):      #isinstance(plotWin.scene().items()[6], pg.graphicsItems.LegendItem.LegendItem)
                             if item.items[0][1].text == curvename:                      # get the legend of the curve
                                 plotWin.scene().removeItem(item)
                                 break
@@ -507,7 +557,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         if self.bPlotted:
             try:
                 mousePoint = self.currSelctPlotWgt.plotItem.vb.mapSceneToView(pos)  # map the mouse position to the view position
-                # mpOffset = plotWin.plotItem.vb.mapSceneToView(QtCore.QPointF(0.0, 0.0))   # offset the mouse point
+                # mpOffset = plotWin.plotItem.vb.mapSceneToView(QPointF(0.0, 0.0))   # offset the mouse point
                 x = self.minTimestamp
                 timeIndex = datetime.fromtimestamp(x).strftime('%H:%M:%S:%f')[:12]
                 if mousePoint.x() < self.minTimestamp - 3600 or mousePoint.x() > self.maxTimestamp + 2 * 3600:
@@ -625,9 +675,9 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         self.treeUpdate()
 
     def exitAPP(self):
-        choice = QtGui.QMessageBox.question(self, 'Exit', "Close the application?",
-                                            QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
-        if choice == QtGui.QMessageBox.Yes:
+        choice = QMessageBox.question(self, 'Exit', "Close the application?",
+                                           QMessageBox.Yes | QMessageBox.No)
+        if choice == QMessageBox.Yes:
             sys.exit()
         else:
             pass
@@ -636,9 +686,11 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         QTreeWidget.clear(self.treeWidget)
         for tdataset in self.lTestDATA:
             fname = tdataset.fileName           #os.path.basename(self.winImpData.sDataFilePath)
+            rate = tdataset.rate
 
             treeRoot = QTreeWidgetItem(self.treeWidget)
             treeRoot.setText(1, fname)
+            treeRoot.setText(2, str(rate) + 'Hz')
 
             self.treeItem = tdataset.header  # list(self.winImpData.dfData)
             self.numTree = tdataset.column     #self.treeItem.__len__()
@@ -657,13 +709,13 @@ class clsDataView(QMainWindow, Ui_MainWindow):
     def resource_path(self, relative_path):
         """ Get absolute path to resource, works for dev and for PyInstaller """
         if hasattr(sys, '_MEIPASS'):
-            return os.path.join(sys._MEIPASS, relative_path)
-        return os.path.join(os.path.abspath("."), relative_path)
+            return path.join(sys._MEIPASS, relative_path)
+        return path.join(path.abspath("."), relative_path)
         # base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
         # return os.path.join(base_path, relative_path)
 
 
-    class TimeAxisItem(pg.AxisItem): #### class TimeAxisItem is used for overloading x axis as time
+    class TimeAxisItem(AxisItem): #### class TimeAxisItem is used for overloading x axis as time
         def tickStrings(self, values, scale, spacing):
             strns = []
             #rng = max(values) - min(values)    # values are timestamp of date
@@ -707,9 +759,9 @@ class dataParam:
     def __init__(self, paramFile):   # os.getcwd() + \\parameters_code.csv
         self.paramFile = paramFile #the path to the parameter file: r'C:\onedrive\OneDrive - Honeywell\VPD\parameters code.csv'
         self.columName = ['param', 'paramDesc', 'paramDescChs', 'unit', 'unitM', 'unitChs', 'rate']
-        self.paramDF = pd.DataFrame()
+        self.paramDF = DataFrame()
         try:
-            self.paramDF = pd.read_csv(self.paramFile, names=self.columName, index_col=0, header=0)
+            self.paramDF = read_csv(self.paramFile, names=self.columName, index_col=0, header=0)
         except Exception as e:
             print("The file: '" + self.paramFile + "' not exists! Default column headers are used")
             pass

@@ -1,10 +1,10 @@
 from PyQt5.QtWidgets import QFileDialog, QTableWidgetItem
-from PyQt5.QtGui import QIcon
+from PyQt5 import QtGui
 from PyQt5.Qt import QDialog,QMessageBox
-import PyQt5.QtGui
+#import PyQt5.QtGui
 
-import os
-import pandas as pd
+from os import path
+from pandas import read_csv, concat
 from datetime import datetime
 
 from UI_5_Import import Ui_winImportData
@@ -64,10 +64,10 @@ class clsImportData(QDialog, Ui_winImportData):
 
     def initImpUI(self):
 
-        self.tblreviewdata.setEditTriggers(PyQt5.QtGui.QAbstractItemView.NoEditTriggers) # disable to edit the table
+        self.tblreviewdata.setEditTriggers(QtGui.QAbstractItemView.NoEditTriggers) # disable to edit the table
         self.tblreviewdata.setSelectionBehavior(self.tblreviewdata.SelectColumns)   # select columns only
         #self.tblreviewdata.doubleClicked.connect(self.addSelectedColumn)
-        self.tblreviewdata.setSelectionMode( PyQt5.QtGui.QAbstractItemView.MultiSelection)
+        self.tblreviewdata.setSelectionMode(QtGui.QAbstractItemView.MultiSelection)
 
         self.progressBar.setValue(0)
 
@@ -150,7 +150,7 @@ class clsImportData(QDialog, Ui_winImportData):
                 self.setDataFilePath(fname[0])
 
                 try:
-                    sizeoffile = os.path.getsize(self.sDataFilePath)
+                    sizeoffile = path.getsize(self.sDataFilePath)
                     if sizeoffile <= 0:
                         QMessageBox.critical(self, "Error", "Data rate should not be Zero" )
                         return
@@ -159,7 +159,7 @@ class clsImportData(QDialog, Ui_winImportData):
                     return
 
                 try:
-                    dfData = pd.read_csv(self.sDataFilePath, delim_whitespace=True, nrows=200,
+                    dfData = read_csv(self.sDataFilePath, delim_whitespace=True, nrows=200,
                                      error_bad_lines=False)  # read 200 rows only
                     #dfData['TIME']
                     self.iDataRate = self.estDataRate(list(dfData['TIME']))
@@ -261,7 +261,7 @@ class clsImportData(QDialog, Ui_winImportData):
                     break
 
             linesize /= 10
-        filesize = os.path.getsize(self.sDataFilePath)
+        filesize = path.getsize(self.sDataFilePath)
         rownumber = round (filesize/linesize)
         return  rownumber
 
@@ -360,11 +360,11 @@ class clsImportData(QDialog, Ui_winImportData):
         self.tblreviewdata.resizeColumnsToContents()
 
     def processData(self):
-        datafilename = os.path.basename(self.sDataFilePath)  # get the filename
+        datafilename = path.basename(self.sDataFilePath)  # get the filename
         if datafilename:   # data file existing
 
             # get the selected column header
-            dfData = pd.read_csv(self.sDataFilePath, delim_whitespace=True, nrows=1, error_bad_lines=False)  # read 1 line
+            dfData = read_csv(self.sDataFilePath, delim_whitespace=True, nrows=1, error_bad_lines=False)  # read 1 line
             #header = list(dfData)    # get the header to a list
 
             selectedColumnHeader = ['TIME']
@@ -386,7 +386,7 @@ class clsImportData(QDialog, Ui_winImportData):
 
         # read the data file with changed rate and selected columns
 
-            dfData = pd.read_csv(self.sDataFilePath, delim_whitespace=True, error_bad_lines=False,iterator=True)
+            dfData = read_csv(self.sDataFilePath, delim_whitespace=True, error_bad_lines=False,iterator=True)
 
             if self.lastRow - self.iStartRow >= 2048:           # set chunk size to 2048 (2K rows) as standard size
                 chunkSize = max(2048, self.iDataRate )
@@ -431,7 +431,7 @@ class clsImportData(QDialog, Ui_winImportData):
                     break
 
 
-            dfData = pd.concat(chunks,ignore_index=True)
+            dfData = concat(chunks,ignore_index=True)
 
             # enclose the dfData into class clsTestData
             strTestData = clsTestData(datafilename)
@@ -481,7 +481,7 @@ class clsImportData(QDialog, Ui_winImportData):
 
     def getPathOfExport(self):
         fname = QFileDialog.getSaveFileName(self,'Save as:',
-                                            os.path.dirname(self.sDataFilePath),
+                                            path.dirname(self.sDataFilePath),
                                             "Text Files (*.txt)")
         if fname[0]:  # process only the one selection
             self.qleFilePath_out.setText(fname[0])   # the file with path to save data

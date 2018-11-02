@@ -1,4 +1,4 @@
-import pandas as pd
+from pandas import DataFrame
 
 class clsTestData:    # the structure to store the filtered data
     def __init__(self, filename):
@@ -7,7 +7,7 @@ class clsTestData:    # the structure to store the filtered data
         self.column = 0  # column number in the data frame
         self.row = 0  # rows number
         self.header = []   # list of columns header
-        self.data = pd.DataFrame()  # data frame for test data
+        self.data = DataFrame()  # data frame for test data
 
 
 
