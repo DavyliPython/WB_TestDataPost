@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem
 from PyQt5.QtGui import QIcon
 from PyQt5.Qt import QMenu, Qt, QAction, QCursor, QMessageBox
-from PyQt5.QtCore import QEvent
+from PyQt5.QtCore import QEvent, pyqtSignal
 
 #import pyqtgraph as pg
 from pyqtgraph import setConfigOption, PlotWidget, InfiniteLine, TextItem, graphicsItems, ViewBox, PlotCurveItem, AxisItem
@@ -44,8 +44,8 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
         self.minTimestamp = 1514764800.0      # the minimum of 20180101 08:00:00, ie. 1514764800.0 = datetime.datetime.strptime('2018-1-1 8:00:0', '%Y-%m-%d %H:%M:%S').timestamp()
         self.maxTimestamp = 1514800800.0 # datetime.strptime('2018-1-1 18:00:0', '%Y-%m-%d %H:%M:%S').timestamp()
-        self.minYvalue = -2000
-        self.maxYvalue = 5000
+        self.minYvalue = -20000
+        self.maxYvalue = 20000
 
             # r'C:\onedrive\OneDrive - Honeywell\VPD\parameters code.csv'
         self.dataparam = dataParam(self.resource_path('parameters_code.csv'))   # data parameter definition
@@ -182,10 +182,13 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         self.dataPlot.plotItem.scene().sigMouseMoved.connect(self.mouseMove)
         #self.dataPlot.plotItem.scene().sigMouseClicked.connect(self.mouseClick)
 
+        # self.dataPlot.HoverEnterEvent = self.hoverEnterEvent
+
         ## drag and drop
-        self.dataPlot.dragEnterEvent = self.dragEnterEvent
-        self.dataPlot.plotItem.setAcceptDrops(True)
-        self.dataPlot.plotItem.dropEvent = self.dropEvent
+        # self.dataPlot.dragEnterEvent = self.dragEnterEvent
+        # self.dataPlot.plotItem.setAcceptDrops(True)
+        # self.dataPlot.plotItem.dropEvent = self.dropEvent
+
 
         vLine = InfiniteLine(angle=90, movable=False, name='vline')
         hLine = InfiniteLine(angle=0, movable=False, name='hline')
@@ -221,8 +224,9 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         self.currSelctPlotWgt.setBackground(0.95)
 
     def eventFilter(self, source, event):
-        if event.type() == QEvent.Enter:
-            print("Enter " + source.plotItem.vb.name)
+        #print (event.type())
+        if event.type() == QEvent.Enter: #HoverEnter:
+            #print("Enter " + source.plotItem.vb.name)
             self.currSelctPlotWgt.setBackground('default')
             self.currSelctPlotWgt = source
             self.currSelctPlotWgt.setBackground(0.95)
@@ -253,7 +257,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
 
         if event.type() == QEvent.Leave: # and source is self.dataPlot:
-            print("Leave " + source.plotItem.vb.name)
+            #print("Leave " + source.plotItem.vb.name)
 
             for item in source.plotItem.items:
                 if isinstance(item, graphicsItems.TextItem.TextItem):
@@ -293,14 +297,13 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
     def dragEnterEvent(self, evt):
         evt.accept()
-        # pass
 
         # for i in range(self.dataPlotLayout.count()):
         #     plotAera = self.dataPlotLayout.itemAt(i).widget()
         #     print(plotAera.underMouse())
         #     if plotAera.underMouse():
         #         self.currSelctPlotWgt = plotAera
-        #         evt.accept()
+        #
         #         break
 
         # if self.currSelctPlotWgt.underMouse():
@@ -308,11 +311,16 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         # else:
         #     evt.ignore()
 
+    def hoverEnterEvent(self,evet):
+        pass
+
     def dropEvent(self, evt):
+        #self.emit(mouseEnter event)
         #if self.currSelctPlotWgt.underMouse():
         for i in range(self.dataPlotLayout.count()):
             plotAera = self.dataPlotLayout.itemAt(i).widget()
             print(plotAera.plotItem.vb.name)
+            print (plotAera.underMouse())
             if plotAera.underMouse():
                 self.currSelctPlotWgt = plotAera
                 self.plotData(plotAera, self.treeWidget.selectedItems())
@@ -377,9 +385,9 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         newdataPlot.plotItem.scene().sigMouseMoved.connect(self.mouseMove)
 
         ## drag and drop
-        newdataPlot.dragEnterEvent = self.dragEnterEvent
-        newdataPlot.plotItem.setAcceptDrops(True)
-        newdataPlot.plotItem.dropEvent = self.dropEvent
+        # newdataPlot.dragEnterEvent = self.dragEnterEvent
+        # newdataPlot.plotItem.setAcceptDrops(True)
+        # newdataPlot.plotItem.dropEvent = self.dropEvent
 
         # set the default plot range
         newdataPlot.setXRange(self.minTimestamp,self.maxTimestamp,padding=20)
