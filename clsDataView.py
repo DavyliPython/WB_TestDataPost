@@ -1,10 +1,10 @@
 from PyQt5.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem, QFileDialog
 from PyQt5.QtGui import QIcon
-from PyQt5.Qt import QMenu, Qt, QAction, QCursor, QMessageBox, QColor
+from PyQt5.Qt import QMenu, Qt, QAction, QCursor, QMessageBox, QColor, QPoint
 from PyQt5.QtCore import QEvent
 
 #import pyqtgraph as pg
-from pyqtgraph import setConfigOption, PlotWidget, InfiniteLine, TextItem, graphicsItems, ViewBox, PlotCurveItem, AxisItem
+from pyqtgraph import setConfigOption, PlotWidget, InfiniteLine, TextItem, graphicsItems, ViewBox, PlotCurveItem, AxisItem, mkPen,mkColor
 from pandas import DataFrame, read_csv
 
 import sys
@@ -179,10 +179,11 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
         # set up context menu of list widget
         self.listWidget.setWordWrap(True)
-        self.listWidget.setSortingEnabled(True)    # sort the list item automatically
+        #self.listWidget.setSortingEnabled(True)    # sort the list item automatically
         self.listWidget.setContextMenuPolicy(Qt.CustomContextMenu)
         self.listWidget.customContextMenuRequested.connect(self.showListContextMenu)
         self.listWidget.listContextMenu = QMenu(self)
+
         self.actionB = self.listWidget.listContextMenu.addAction(u'Remove')
         self.actionB.triggered.connect(
             lambda: self.removeItemInPlot(self.listWidget.selectedItems()))
@@ -522,10 +523,12 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                 # example
                 # pw.plot(x=[x.timestamp() for x in iTime ], y= list(df['BCVIIN']), pen = 'r')
                 try:
+                    lstitems = self.listWidget.findItems(plotWgtName,Qt.MatchStartsWith)  # get the curves plotted in the plot area
+                    curve_num = lstitems.__len__()
                     plotItem.addLegend()
                     plotcurve = PlotCurveItem(x=[x.timestamp() for x in iTime], y= data_2_plot, name = curve_name, pen=self.colorDex[self.colorIndex])
-
                     plotItem.addItem(plotcurve)
+
                 except Exception as e:
                     QMessageBox.critical(self, "Error", "Error with plotting curve.\n" + e.__str__())
 
@@ -535,12 +538,11 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                 if not plotWgtName: print("check the plotwidget definition in the mainUI.py, comment it!!!!")
                 self.lPlottedItems.append({'Plot': plotWgtName, 'Curvename': curve_name, 'Filename': filename, 'Color': self.colors[self.colorIndex] })
 
-                lstitems = self.listWidget.findItems(plotWgtName, Qt.MatchStartsWith)  # delete the list in the list widget
-                self.listWidget.addItem(plotWgtName + '|' + str(lstitems.__len__() + 1) + '|' + curve_name + '|' + filename )
+                # add the curve description to the list widget
+                self.listWidget.addItem(plotWgtName + '|' + str(curve_num + 1) + '|' + curve_name + '|' + filename )
                 self.listWidget.item(self.listWidget.count()-1).setBackground(QColor(self.colors[self.colorIndex]))
-
-                # labl = QLabel(curve_name)
-                # plotItem.addItem(labl)
+                self.listWidget.item(self.listWidget.count() - 1).setForeground(QColor('white'))
+                self.listWidget.sortItems()
 
                 # set the legend text color, hide the legend sample
                 try:
@@ -553,6 +555,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                                     lgditem.items[0][1].hide()
                                 if isinstance(lgditem.items[0][1], graphicsItems.LabelItem.LabelItem):
                                     lgditem.items[0][1].setText("<span style='color: "+ self.colors[self.colorIndex]+ "'>"+ lgditem.items[0][1].text)
+                                    lgditem.autoAnchor(QPoint(10, 10 + 50 * curve_num))
                                 elif isinstance(lgditem.items[0][0], graphicsItems.LabelItem.LabelItem):
                                     lgditem.items[0][0].setText("<span style='color: "+ self.colors[self.colorIndex]+ "'>"+ lgditem.items[0][1].text)
 
@@ -584,16 +587,33 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                 if curveFound:
                     plotWin.removeItem(j)               # delete the curve from the plot
                     #plotWin.scene().removeItem(plotWin.plotItem.legend)
+                    k = 0  # the # of the legend
                     for item in plotWin.scene().items():    # remove the legend
+
                         if isinstance(item, graphicsItems.LegendItem.LegendItem):      #isinstance(plotWin.scene().items()[6], pg.graphicsItems.LegendItem.LegendItem)
                             if curvename in item.items[0][1].text:                      # get the legend of the curve
                                 plotWin.scene().removeItem(item)
-                                break
+                                #break
+                            else:    # reposition the legend
+                                #item.items[0][1].setPos(50, 50)
+                                item.autoAnchor(QPoint(10, 10 + 50 * k))   #+ 50 * k
+                                k += 1
+
                     self.listWidget.takeItem( self.listWidget.row(selectedItem[0]))    # remove the item from the list
+                    # resort the list item name
+                    list_items = self.listWidget.findItems(plotname, Qt.MatchStartsWith)
+                    for list_item in list_items:
+                        list_item_texts = list_item.text().split('|')
+                        if list_item_texts[1] > curve_num:
+                            list_item_texts[1] = str(int(list_item_texts[1]) - 1)
+                            list_item.setText(''.join(e + '|' for e in list_item_texts)[:-1])
+
                     for iPlottedItem in self.lPlottedItems:
                         if iPlottedItem['Filename'] == filename and iPlottedItem['Curvename'] == curvename and iPlottedItem['Plot'] == plotname:
                             self.lPlottedItems.remove(iPlottedItem)
                             break
+
+
 
                 self.autoRangeAllWins()
 
@@ -649,7 +669,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                         #print('time: %s' % timeIndex)
 
 
-                        for iLine in plotWin.items():  # loop for the vline
+                        for iLine in plotWin.items():  # loop for the vline to set its position in all plots
                             if hasattr(iLine, 'name'):
                                 if iLine.name() == 'vline':
                                     iLine.setPos(mousePoint.x())
@@ -659,8 +679,8 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                         #if plotWin.underMouse():  # check if the mouse is on the widget, True: current plot the mouse is in
                             #currentPlotArea = plotWin
 
-                # move both hline in current plot area
-                for iLine in self.currSelctPlotWgt.items():  # loop for the vline and hline
+                # move the hline in current plot area
+                for iLine in self.currSelctPlotWgt.items():  # loop for the hline
                     mousePoint = self.currSelctPlotWgt.plotItem.vb.mapSceneToView(pos)
                     if hasattr(iLine, 'name'):
                         if iLine.name() == 'hline':
@@ -679,12 +699,12 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                         filename = iCurve["Filename"]
                         curvename = iCurve["Curvename"].split('>')[0]
                         unit = iCurve["Curvename"].split('>')[2]
-                        #TODO
-                        list_items = self.listWidget.findItems(plotname, Qt.MatchStartsWith)  # delete the list in the list widget
+
+                        list_items = self.listWidget.findItems(plotname, Qt.MatchStartsWith)  # get the curves in each plot, the curves in the list widget is not unique
                         if len(list_items) > 0:
                             for i_item in list_items:
                                 [plotname_list, curve_num, itemname_list, filename_list] = i_item.text().split('|')
-                                if curvename in itemname_list: break
+                                if curvename in itemname_list: break    # get the first instance of the curve by its name
 
                         for dataset in self.lTestDATA:
                             dfData = dataset.data
@@ -697,12 +717,13 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                             if x > startTime and x < endTime:
                                 row = round((x - startTime) * rate)  # the the row number
                                 #print('row number: %d' % row)
-                                y = dfData[curvename].iloc[row]  # dfData[curvename].iloc()[row]
-                                #print('y: %f' % y)
-                                y_value[curve_num + '@' + plotname + ':' + curvename] = str(round(y,1)) + unit  # keep the curve value in y to the list
+                                if hasattr(dfData,curvename):
+                                    y = dfData[curvename].iloc[row]  # dfData[curvename].iloc()[row]
+                                    #print('y: %f' % y)
+                                    y_value[curve_num + '@' + plotname + ':' + curvename] = str(round(y,1)) + unit  # keep the curve value in y to the list
 
-                                if self.currSelctPlotWgt.getViewBox().name == plotname:  # the data set of current plot area
-                                    curr_Y.append(curve_num + ':' + str(round(y,2)))
+                                    if self.currSelctPlotWgt.getViewBox().name == plotname:  # the data set of current plot area
+                                        curr_Y.append(curve_num + ':' + str(round(y,2)))
 
             except Exception as e:
                 print('exception @ mousemove 3' + e.__str__())
@@ -848,7 +869,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
             for x in values:
                 try:
                     if x < 946656000: x += 946656000     ## handle time starting from 1/1/2000
-                    if rng < 5:
+                    if rng < 5 and rng > 0:
                         strns.append(datetime.fromtimestamp(x).strftime('%H:%M:%S.%f')[:-3])  # show minisecond
                     else:
                         strns.append(datetime.fromtimestamp(x).strftime('%H:%M:%S'))
