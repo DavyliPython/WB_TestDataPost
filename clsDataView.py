@@ -66,6 +66,12 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         # # set the time axis of X
         ### TODO: need to comment the self.dataplot line in the mainUI.py if it is recreated
         ###        or there is a error the plot widget being with no name of Plot1
+        ###     self.dataPlotLayout = QtWidgets.QVBoxLayout(self.verticalLayoutWidget)
+        ###     self.dataPlotLayout.setContentsMargins(0, 0, 0, 0)
+        ###     self.dataPlotLayout.setObjectName("verticalLayout")
+        ###     self.dataPlot = PlotWidget(self.dataPlotLayout)
+        ###     the layout name is dataPlotLayout we used in following scritps
+        ###     for example: self.dataPlotLayout.addWidget(newdataPlot)
         xAxis = self.TimeAxisItem(orientation='bottom')
         self.dataPlot = PlotWidget(self, axisItems={'bottom': xAxis}, name='Plot1')  ### TODO: need to comment the self.dataplot line in the mainUI.py if it is recreated
 
@@ -147,11 +153,23 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         toolBar.addAction(removePlotAction)
         toolBar.addAction(viewAllAction)
 
-
+        # those settings are from setupUI() in mainUI.py which should be changed
+        # self.dataPlotLayout = QtWidgets.QVBoxLayout(self.verticalLayoutWidget)
+        # self.dataPlotLayout.setContentsMargins(0, 0, 0, 0)
+        # self.dataPlotLayout.setObjectName("dataPlotLayout")
+        # # self.dataPlot = PlotWidget(self.verticalLayoutWidget)
+        # self.dataPlot.setObjectName("dataPlot")
+        # self.dataPlotLayout.addWidget(self.dataPlot)
 
 
         # toolBar = self.addToolBar('Exit')
         # toolBar.addAction(selExitAction)  # link menu bar to openfile action
+
+        # resize the layout by the splitters
+        self.splitter_3.setSizes([200,1600])   # left vs right
+        self.splitter_2.setSizes([20,600])     # top right vs bottom right
+        self.splitter.setSizes([400,200])      # top left vs bottom left
+
 
         # 设置dataPlot  class: PlotWidget
         self.dataPlot.plotItem.showGrid(True, True, 0.5)
@@ -263,11 +281,12 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                 if iItem['Plot'] == plotAreaName:  # there is at least a curve in the plot
                      # get the lable of labelY_value
                     for item in source.getViewBox().childItems():   # loop the viewbox to find out the text item of mouse label
-                        if isinstance(item, graphicsItems.TextItem.TextItem):  # the text label is linked to the viewbox, not showing up
-                            self.curLabelofYvalue = item
-                            source.addItem(self.curLabelofYvalue)        # add the text label to plot widget to show it up
-                            labelofYvalueExisting = True
-                            break
+                        if isinstance(item, graphicsItems.TextItem.TextItem) :  # the text label is linked to the viewbox, not showing up
+                            if item.color.name() == '#ffffff':    # text in white (#ffffff) is mouse text
+                                self.curLabelofYvalue = item
+                                source.addItem(self.curLabelofYvalue)        # add the text label to plot widget to show it up
+                                labelofYvalueExisting = True
+                                break
                     if not labelofYvalueExisting:       # the label is not showing up
                         for item in source.plotItem.items:                      # the text label is in the plot item list
                             if isinstance(item, graphicsItems.TextItem.TextItem):
@@ -280,9 +299,10 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
             for item in source.plotItem.items:
                 if isinstance(item, graphicsItems.TextItem.TextItem):
-                    source.plotItem.removeItem(item)                    # remove the item
-                    item.setParentItem(source.getViewBox())             # keep the link of the text label in the view box
-                    break
+                    if item.color.name() == '#ffffff':
+                        source.plotItem.removeItem(item)                    # remove the item
+                        item.setParentItem(source.getViewBox())             # keep the link of the text label in the view box
+                        break
 
             # move the hline to 0
             for iLine in source.items():  # loop for the hline
@@ -291,7 +311,75 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                         iLine.setPos(self.minTimestamp)
                         break
 
-        # print(event.type())
+        #print(event.type())
+
+        if event.type() == QEvent.MouseButtonDblClick:
+            try:
+                if self.lPlottedItems.__len__() < 1: return # no action if no curve plotted
+
+                #plotArea = source  # get the plot widget
+                #plotAreaName = source.plotItem.vb.name
+                mousePoint = source.plotItem.vb.mapSceneToView(source.lastMousePos)
+                x = mousePoint.x()    # get the x of the mouse point
+                #curr_Y = [str(round(mousePoint.y(), 2))]
+
+                for i in range(self.dataPlotLayout.count()):   # cycle the plot area
+                    plotAera = self.dataPlotLayout.itemAt(i).widget()
+                    plotAreaName = plotAera.plotItem.vb.name
+                    print(plotAreaName)
+                    print(plotAera.underMouse())
+                    # if plotAera.underMouse():
+                    #     self.currSelctPlotWgt = plotAera
+                    #     self.plotData(plotAera, self.treeWidget.selectedItems())
+                    #     break
+
+
+                    # cycle the plotted cureve to get the y value
+                    for iCurve in self.lPlottedItems:
+                        plotname = iCurve['Plot']
+                        filename = iCurve["Filename"]
+                        curvename = iCurve["Curvename"].split('>')[0]
+                        unit = iCurve["Curvename"].split('>')[2]
+                        curve_color = iCurve['Color']
+
+                        list_items = self.listWidget.findItems(plotname,Qt.MatchStartsWith)  # get the curves in each plot, the curves in the list widget is not unique
+                        if len(list_items) > 0:
+                            for i_item in list_items:
+                                [plotname_list, curve_num, itemname_list, filename_list] = i_item.text().split('|')
+                                if curvename in itemname_list: break  # get the first instance of the curve by its name
+
+                        for dataset in self.lTestDATA:
+                            dfData = dataset.data
+                            startTime = datetime.strptime('2018 ' + dfData['TIME'].iloc[0],
+                                                          '%Y %H:%M:%S:%f').timestamp()
+                            endTime = datetime.strptime('2018 ' + dfData['TIME'].iloc[-1],
+                                                        '%Y %H:%M:%S:%f').timestamp()
+                            rate = dataset.rate
+
+                            if x > startTime and x < endTime:
+                                row = round((x - startTime) * rate)  # the the row number
+                                # print('row number: %d' % row)
+                                if hasattr(dfData, curvename):
+                                    y = dfData[curvename].iloc[row]  # dfData[curvename].iloc()[row]
+                                    # print('y: %f' % y)
+                                    # y_value[curve_num + '@' + plotname + ':' + curvename] = str(
+                                    #     round(y, 1)) + unit  # keep the curve value in y to the list
+                                    # y_value_color.append(curve_color)
+
+                                    txtY_value = TextItem(str(round(y,2)), fill=(0, 255, 255, 120), anchor=(0,0), color='k')
+                                    plotAera.addItem(txtY_value)
+                                    txtY_value.setPos(x, y)
+                                    #txtY_value.setParentItem(plotAera.plotItem.getViewBox())
+
+
+            except Exception as e:
+                print(e.__str__())
+
+
+
+
+
+            pass
         # if event.type() == QEvent.GraphicsSceneDragEnter:
         #     self.currSelctPlotWgt.setBackground('default')
         #     self.currSelctPlotWgt = source
@@ -427,7 +515,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
         newdataPlot.plotItem.showGrid(True, True, 0.5)
 
-        vb.scaleBy(y=None)
+        #vb.scaleBy(y=None)
 
         # make it the current selection plot area
         self.currSelctPlotWgt.setBackground('default')
@@ -461,7 +549,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                 for item in self.currSelctPlotWgt.items():   # delete the items of the plot
                     self.currSelctPlotWgt.removeItem(item)
 
-                lstitems = self.listWidget.findItems(curreSelctPlotWgtName, Qt.MatchStartsWith)  # delete the list in the list widget
+                lstitems = self.listWidget.findItems(curreSelctPlotWgtName, Qt.MatchStartsWith)  # delete the items in the plot from the list widget
                 if len(lstitems) > 0:
                     for iitem in lstitems:
                         self.listWidget.takeItem(self.listWidget.row(iitem))
@@ -471,12 +559,33 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
 
 
-                self.dataPlotLayout.removeWidget(self.currSelctPlotWgt)
-                self.currSelctPlotWgt.deleteLater()    #setHidden(True)     # hide the selected widget, should be deleted, to be updated with delect command
-                self.currSelctPlotWgt = None
-                self.lPlotWindows.remove(curreSelctPlotWgtName)    # remove the plot name from list of plot windows
+                self.dataPlotLayout.removeWidget(self.currSelctPlotWgt)  # remove the plot widget from layout
+                self.currSelctPlotWgt.deleteLater()                     # delete the widget    #setHidden(True)     # hide the selected widget, should be deleted, to be updated with delect command
+                self.lPlotWindows.remove(curreSelctPlotWgtName)         # remove the plot name from list of plot record
 
-                self.currSelctPlotWgt = self.dataPlot   # set the current selection to plot1
+                plot_num = int(curreSelctPlotWgtName[4:])  # get the plot number of the removed one
+
+                    # delete the item from the recorded plot list
+                try:
+                    # remove the item in the plot
+                    # for item in self.lPlottedItems:
+                    #     if item['Plot'] == curreSelctPlotWgtName:
+                    #         unwanted_item = [].append(curreSelctPlotWgtName)
+                    self.lPlottedItems = [e for e in self.lPlottedItems if e['Plot'] != curreSelctPlotWgtName]
+                    for item in self.lPlottedItems:   # reorder the list of plotteditem
+                        if int(item['Plot'][4:]) > plot_num:
+                            # reorder the list in the list widget
+                            list_items = self.listWidget.findItems(item['Plot'], Qt.MatchStartsWith)
+                            for list_item in list_items:
+                                list_item_texts = list_item.text().split('|')
+                                list_item_texts[0] = 'Plot' + str(int(item['Plot'][4:]) - 1)
+                                list_item.setText(''.join(e + '|' for e in list_item_texts)[:-1])
+
+                            item['Plot'] = 'Plot' + str(int(item['Plot'][4:]) - 1)
+
+                    self.currSelctPlotWgt = self.dataPlotLayout.itemAt(plot_num - 2 ).widget()  # -1 for the next one, another -1 is due to item staring from 0
+                except Exception as e:
+                    self.currSelctPlotWgt = self.dataPlot   # set the current selection to plot1
                 self.currSelctPlotWgt.setBackground(0.95)
 
     def plotData(self, plotItem, selectedItems):
@@ -627,9 +736,10 @@ class clsDataView(QMainWindow, Ui_MainWindow):
         try:
             pos = evt  # get the point of mouse
             y_value = {}    # to keep the y values of all curves
+            y_value_color = []
 
         except Exception as e:
-            print('exception @ mousemove 1' + e.__str__())
+            print('exception @ mousemove 1 ' + e.__str__())
 
         if self.lPlottedItems.__len__() > 0:
             try:
@@ -688,7 +798,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                             break
 
             except Exception as e:
-                print('exception @ mousemove 2' + e.__str__())
+                print('exception @ mousemove 2 ' + e.__str__())
 
             # get the y value of all plotted curves
             try:
@@ -699,6 +809,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                         filename = iCurve["Filename"]
                         curvename = iCurve["Curvename"].split('>')[0]
                         unit = iCurve["Curvename"].split('>')[2]
+                        curve_color = iCurve['Color']
 
                         list_items = self.listWidget.findItems(plotname, Qt.MatchStartsWith)  # get the curves in each plot, the curves in the list widget is not unique
                         if len(list_items) > 0:
@@ -721,12 +832,13 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                                     y = dfData[curvename].iloc[row]  # dfData[curvename].iloc()[row]
                                     #print('y: %f' % y)
                                     y_value[curve_num + '@' + plotname + ':' + curvename] = str(round(y,1)) + unit  # keep the curve value in y to the list
+                                    y_value_color.append(curve_color)
 
                                     if self.currSelctPlotWgt.getViewBox().name == plotname:  # the data set of current plot area
                                         curr_Y.append(curve_num + ':' + str(round(y,2)))
 
             except Exception as e:
-                print('exception @ mousemove 3' + e.__str__())
+                print('exception @ mousemove 3 ' + e.__str__())
 
             # display the y value of all curves
             try:
@@ -734,12 +846,18 @@ class clsDataView(QMainWindow, Ui_MainWindow):
 
                 if y_value:
                     # show the values of all curves shown in plots
-                    self.labelValueY.setText("<span style='font-size: 11pt; color: red'>" + str(
-                        ["%s=%s" % (k, v) for k, v in y_value.items()]))
+                    #self.labelValueY.setText("<span style='font-size: 11pt; color: red'>" + str(
+                    #    ["%s=%s" % (k, v) for k, v in y_value.items()]))
+                    i = 0
+                    labelValueY_text = ""
+                    for k, v in y_value.items():
+                        labelValueY_text += "<span style='font-size: 11pt; color:%s'>%s=%s</span>; " %(y_value_color[i],k,v)
+                        i += 1
+                    self.labelValueY.setText(labelValueY_text)
                 else:
                     self.labelValueY.setText("")
             except Exception as e:
-                print('exception @ mousemove 4' + e.__str__())
+                print('exception @ mousemove 4 ' + e.__str__())
 
             # show cureve's y value on the mouse label in current plot area
             try:
@@ -752,7 +870,7 @@ class clsDataView(QMainWindow, Ui_MainWindow):
                     #print(self.curLabelofYvalue.__str__)
                     #self.dataPlot.addItem(labelY_value)
             except Exception as e:
-                print('exception @ mousemove 5' + e.__str__())
+                print('exception @ mousemove 5 ' + e.__str__())
 
 
 
@@ -853,11 +971,12 @@ class clsDataView(QMainWindow, Ui_MainWindow):
     class TimeAxisItem(AxisItem): #### class TimeAxisItem is used for overloading x axis as time
         def tickStrings(self, values, scale, spacing):
             strns = []
-            try:
-                rng = max(values) - min(values)    # values are timestamp of date
-            except Exception as e:
-                rng = 0
-                print(e.__str__())
+            # try:
+            #     if values.__len__() < 1: return strns.append('')
+            #     rng = max(values) - min(values)    # values are timestamp of date
+            # except Exception as e:
+            #     rng = 0
+            #     print("x axis error:" + e.__str__())
             #946656000 = datetime.strptime('2000', '%Y').timestamp() ,  handel dates after 2000 only
             # if min(values) < 946656000:  # Windows can't handle dates before 1970,
             #     # 1514764800.0 = datetime.datetime.strptime('2018-1-1 8:00:0', '%Y-%m-%d %H:%M:%S').timestamp()
@@ -866,15 +985,21 @@ class clsDataView(QMainWindow, Ui_MainWindow):
             #
             #     return pg.AxisItem.tickStrings(self, values, scale, spacing)
 
-            for x in values:
-                try:
+            try:
+                for x in values:
                     if x < 946656000: x += 946656000     ## handle time starting from 1/1/2000
-                    if rng < 5 and rng > 0:
-                        strns.append(datetime.fromtimestamp(x).strftime('%H:%M:%S.%f')[:-3])  # show minisecond
+                    # if rng < 10 and rng >= 0.001:
+                    #     strns.append(datetime.fromtimestamp(x).strftime('%H:%M:%S.%f')[:-3])  # show minisecond
                     else:
-                        strns.append(datetime.fromtimestamp(x).strftime('%H:%M:%S'))
-                except ValueError:  ## Windows can't handle dates before 1970
-                    strns.append('')
+                        #strns.append(datetime.fromtimestamp(x).strftime('%H:%M:%S'))
+                        #print(x, datetime.fromtimestamp(x).strftime('%H:%M:%S.%f')[:-3])
+                        #print(x - int(x))
+                        if x - int(x) < 0.1:
+                            strns.append(datetime.fromtimestamp(x).strftime('%H:%M:%S'))
+                        else:
+                            strns.append(datetime.fromtimestamp(x).strftime('%H:%M:%S.%f')[:-3])  # show minisecond
+            except ValueError:  ## Windows can't handle dates before 1970
+                strns.append('')
                     #print(Exception.__str__)
 
 
